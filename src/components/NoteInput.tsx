@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNotes } from '../contexts/NotesContext';
 
-interface NoteInputProps {
-  onAddNote: (note: string) => void;
-}
-
-const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
+const NoteInput: React.FC = () => {
     const [value, setValue] = useState<string>("");
     const inputRef = useRef<HTMLInputElement>(null);
+    const { addNote } = useNotes();
 
     useEffect(() => {
         inputRef.current?.focus();
@@ -14,7 +12,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && value.trim() !== '') {
-            onAddNote(value);
+            addNote(value);
             setValue('');
         }
     };
