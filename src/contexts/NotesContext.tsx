@@ -1,9 +1,18 @@
 // NotesContext.tsx
 import React, { createContext, useContext, ReactNode, useState } from 'react';
 
+interface Note {
+  id: string;
+  title: string;
+  parentId: string | null;
+  children: Note[];
+}
+
 interface NotesContextType {
-    notes: string[];
-    addNote: (note: string) => void;
+    notes: Note[];
+    addNote: (note: Note) => void;
+    nestNote: (noteId: string, parentId: string) => void;
+    findPreviousSiblingId: (noteId: string) => string | null;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -13,14 +22,40 @@ interface NotesProviderProps {
 }
 
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
-    const [notes, setNotes] = useState<string[]>([]);
+    const [notes, setNotes] = useState<Note[]>([]);
 
-    const addNote = (note: string) => {
+    const addNote = (note: Note) => {
         setNotes(prevNotes => [...prevNotes, note]);
     };
 
+    const nestNote = (noteId: string, newParentId: string) => {
+      setNotes(prevNotes => {
+        return prevNotes.map(note => {
+          if (note.id === noteId) {
+            return { ...note, parentId: newParentId };
+          }
+          return note;
+        });
+      });
+    };
+
+    const findPreviousSiblingId = (noteId: string): string | null => {
+      const noteIndex = notes.findIndex(note => note.id === noteId);
+      const currentNote = notes[noteIndex];
+      if (noteIndex <= 0 || !currentNote) return null;
+    
+      // Traverse backwards to find the previous sibling with the same parentId
+      for (let i = noteIndex - 1; i >= 0; i--) {
+        if (notes[i].parentId === currentNote.parentId) {
+          return notes[i].id;
+        }
+      }
+    
+      return null;
+    };
+
     return (
-        <NotesContext.Provider value={{ notes, addNote }}>
+        <NotesContext.Provider value={{ notes, addNote, nestNote, findPreviousSiblingId }}>
             {children}
         </NotesContext.Provider>
     );
