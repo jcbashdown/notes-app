@@ -1,5 +1,6 @@
 // NotesContext.tsx
 import React, { createContext, useContext, ReactNode, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Note {
   id: string;
@@ -10,7 +11,8 @@ interface Note {
 
 interface NotesContextType {
     notes: Note[];
-    addNote: (note: Note) => void;
+    addNote: (title: string, parentId: string | null) => void;
+    updateNote: (noteId: string, newTitle: string) => void;
     nestNote: (noteId: string, parentId: string) => void;
     findPreviousSiblingId: (noteId: string) => string | null;
 }
@@ -22,10 +24,42 @@ interface NotesProviderProps {
 }
 
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
-    const [notes, setNotes] = useState<Note[]>([]);
+    const [notes, setNotes] = useState<Note[]>([
+      { id: uuidv4(), title: '', parentId: null, children: [] },
+    ]);
 
-    const addNote = (note: Note) => {
-        setNotes(prevNotes => [...prevNotes, note]);
+    const addNote = (title: string, previousNoteId: string | null = null, parentId?: string | null) => {
+        const newNote: Note = {
+            id: uuidv4(), // This will create a unique identifier
+            title,
+            parentId: parentId || null,
+            children: []
+        };
+        setNotes(prevNotes => {
+          const newNotes = [...prevNotes];
+          
+          // Find the index of the note after which the new note should be added
+          const previousNoteIndex = previousNoteId != null ? newNotes.findIndex(n => n.id === previousNoteId) : -1;
+
+          if (previousNoteIndex >= 0) {
+            // Insert the new note after the specified note
+            newNotes.splice(previousNoteIndex + 1, 0, newNote);
+          } else {
+            // If no specific position is given, add the new note to the end of the list
+            newNotes.push(newNote);
+          }
+
+          return newNotes;
+        });
+    };
+
+    const updateNote = (noteId: string, newTitle: string) => {
+        setNotes(prevNotes => prevNotes.map(note => {
+            if (note.id === noteId) {
+                return { ...note, title: newTitle };
+            }
+            return note;
+        }));
     };
 
     const nestNote = (noteId: string, newParentId: string) => {
@@ -55,7 +89,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     };
 
     return (
-        <NotesContext.Provider value={{ notes, addNote, nestNote, findPreviousSiblingId }}>
+        <NotesContext.Provider value={{ notes, addNote, updateNote, nestNote, findPreviousSiblingId }}>
             {children}
         </NotesContext.Provider>
     );
