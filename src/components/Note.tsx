@@ -1,21 +1,18 @@
 import React from 'react';
-import { useNotes } from '../contexts/NotesContext';
+import { useNotes, NoteInterface } from '../contexts/NotesContext';
 import NoteInput from './NoteInput';
 
-const Note: React.FC<{ noteId: string }> = ({ noteId }) => {
-  const { notes } = useNotes();
-  const note = notes.find(n => n.id === noteId);
-
-  if (!note) return null;
+const Note: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {
+  const nextPath = `${currentLevelPath}.${noteIndex}.children`;
 
   return (
     <li>
-      <NoteInput noteId={note.id} />
+      <NoteInput key={note.id} note={note} noteIndex={noteIndex} currentLevelNotes={currentLevelNotes} currentLevelPath={currentLevelPath} />
       {note.children && (
         <ul>
-          {notes.filter(child => child.parentId === note.id).map(childNote => (
-            <Note key={childNote.id} noteId={childNote.id} />
-          ))}
+          {note.children.map((childNote: NoteInterface, index: number) => {
+            return <Note key={childNote.id} note={childNote} noteIndex={index} currentLevelNotes={note.children} currentLevelPath={nextPath} />
+          })}
         </ul>
       )}
     </li>

@@ -1,15 +1,15 @@
 // NotesList.tsx
 import React from 'react';
-import { useNotes } from '../contexts/NotesContext';
+import { useNotes, NoteInterface } from '../contexts/NotesContext';
 import Note from './Note';
 
 const NotesList: React.FC = () => {
   const { notes } = useNotes();
   return (
     <ul>
-      {notes.map(note => (
-        <Note key={note.id} noteId={note.id} />
-      ))}
+      {notes.map((note: NoteInterface, noteIndex: number) => {
+        return <Note key={note.id} note={note} noteIndex={noteIndex} currentLevelNotes={notes}/>
+      })}
     </ul>
   );
 };

@@ -1,64 +1,62 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNotes } from '../contexts/NotesContext';
+import { useNotes, NoteInterface } from '../contexts/NotesContext';
 
-const NoteInput: React.FC<{ noteId: string, parentId?: string }> = ({ noteId, parentId }) => {
-    const { notes, addNote, updateNote, nestNote, findPreviousSiblingId } = useNotes();
-    const note = notes.find(n => n.id === noteId);
-    const [value, setValue] = useState(note?.title || "");
+const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {
+    const { addNote, updateNote, nestNote, findPreviousSiblingId } = useNotes();
+    const noteId = note.id;
+    const parentId = note.parentId;
+    const previousNoteIndex = noteIndex - 1 >= 0 ? noteIndex - 1 : null;
+    const previousNote = previousNoteIndex != null ? currentLevelNotes[previousNoteIndex] : null; 
 
     const inputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        inputRef.current?.focus();
-    }, []);
-
-    useEffect(() => {
-        // This effect will update the value state whenever the current note's title changes
-        if (note) {
-            setValue(note.title);
-        }
-    }, [note]); // Depend on the note object itself, which will change when its title changes
+    //useEffect(() => {
+        //inputRef.current?.focus();
+    //}, []);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        const target = e.target as HTMLInputElement;
         if (e.key === 'Enter') {
           e.preventDefault();
           // Add a new note and focus on its input field if the current note does not have an empty title
-          if (value.trim() !== '') {
-            addNote("", note?.id, parentId || null);
+          if (target.value.trim() !== '') {
+            addNote("", noteIndex, parentId, currentLevelPath);
           }
           // After state update, focus will shift to the new input automatically
           // due to the way React handles re-renders and the focus effect in this component
         }
         else if (e.key === 'Tab') {
           e.preventDefault(); // Stop the default tab action
+          //TODO
 
+          //Call the nestNote method is the note is not the first one.
+          //Use the previous sibling as the new parent
+          //...
           // Call the nestNote method from context if the note is not top-level
-          if (parentId) {
-            // Assume we have a function `findPreviousSiblingId` that finds the previous sibling note's ID
-            const previousSiblingId = findPreviousSiblingId(noteId);
-            if (previousSiblingId) {
-              nestNote(noteId, previousSiblingId);
-            }
-          }
+          //if (parentId) {
+            //// Assume we have a function `findPreviousSiblingId` that finds the previous sibling note's ID
+            //const previousSiblingId = findPreviousSiblingId(noteId);
+            //if (previousSiblingId) {
+              //nestNote(noteId, previousSiblingId);
+            //}
+          //}
         }
     };
-
-    // Update the note whenever the value changes
-    useEffect(() => {
-        // Only update if the value actually differs from the current note's title
-        // to prevent unnecessary updates
-        if(value !== note?.title) {
-            updateNote(noteId, value);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if(value.trim() !== note.title) {
+          console.log("here");
+          updateNote({...note, title: value}, noteIndex, currentLevelPath)
         }
-    }, [value, noteId, updateNote]);
+    };
 
     return (
         <input
             ref={inputRef}
             type="text"
             className="border p-2"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
+            value={note.title}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
         />
     );
