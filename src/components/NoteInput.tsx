@@ -10,9 +10,9 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
 
     const inputRef = useRef<HTMLInputElement>(null);
 
-    //useEffect(() => {
-        //inputRef.current?.focus();
-    //}, []);
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         const target = e.target as HTMLInputElement;
@@ -20,7 +20,11 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
           e.preventDefault();
           // Add a new note and focus on its input field if the current note does not have an empty title
           if (target.value.trim() !== '') {
-            addNote("", noteIndex, parentId, currentLevelPath);
+            const nextNote = currentLevelNotes[noteIndex+1] 
+            const nextNoteEmpty = !nextNote?.title; 
+            if(!nextNote || !nextNoteEmpty) {
+              addNote("", noteIndex, parentId, currentLevelPath);
+            }
           }
           // After state update, focus will shift to the new input automatically
           // due to the way React handles re-renders and the focus effect in this component
