@@ -11,9 +11,10 @@ export interface NoteInterface {
 
 interface NotesContextType {
     notes: NoteInterface[];
-    addNote: (title: string, parentId: string | null) => void;
-    updateNote: (noteId: string, newTitle: string) => void;
-    nestNote: (noteId: string, parentId: string) => void;
+    addNote: (title: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => void;
+    updateNote: (updatedNote: NoteInterface, noteIndex: number, currentLevelPath: string) => void;
+    deleteNote: (note: NoteInterface, noteIndex: number, currentLevelPath: string) => void;
+    nestNote: (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number | null, currentLevelPath: string) => void;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -71,13 +72,28 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         });
     };
 
-    const nestNote = (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number, currentLevelPath: string) => {
+    const deleteNote = (note: NoteInterface, noteIndex: number, currentLevelPath: string) => {
+      setNotes(prevNotes => {
+          const newNotes = JSON.parse(JSON.stringify(prevNotes));
+          const newNote = JSON.parse(JSON.stringify(note));
+
+          // Remove note from its current position
+          let pathWithArrayPosition = currentLevelPath;
+
+          if (pathWithArrayPosition !== "") {
+            pathWithArrayPosition = pathWithArrayPosition + ".";
+          }
+
+          return removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
+      });
+    }
+    const nestNote = (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number | null, currentLevelPath: string) => {
       setNotes(prevNotes => {
           const newNotes = JSON.parse(JSON.stringify(prevNotes));
           const newNote = JSON.parse(JSON.stringify(note));
           const newPreviousNote = JSON.parse(JSON.stringify(previousNote));
 
-          if (noteIndex < 0 || previousNoteIndex < 0) {
+          if (noteIndex < 0 || previousNoteIndex === null || previousNoteIndex < 0) {
               return newNotes; // No changes if indices are not valid
           }
 
@@ -101,7 +117,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     };
 
     return (
-        <NotesContext.Provider value={{ notes, addNote, updateNote, nestNote }}>
+        <NotesContext.Provider value={{ notes, addNote, updateNote, deleteNote, nestNote }}>
             {children}
         </NotesContext.Provider>
     );

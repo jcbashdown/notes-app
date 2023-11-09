@@ -2,8 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNotes, NoteInterface } from '../contexts/NotesContext';
 
 const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {
-    const { addNote, updateNote, nestNote, findPreviousSiblingId } = useNotes();
-    const noteId = note.id;
+    const { addNote, updateNote, deleteNote, nestNote } = useNotes();
     const parentId = note.parentId;
     const previousNoteIndex = noteIndex - 1 >= 0 ? noteIndex - 1 : null;
     const previousNote = previousNoteIndex != null ? currentLevelNotes[previousNoteIndex] : null; 
@@ -32,12 +31,16 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
         else if (e.key === 'Tab') {
           e.preventDefault(); // Stop the default tab action
 
-          //Call the nestNote method is the note is not the first one.
-          //Use the previous sibling as the new parent
-          //...
-          // Call the nestNote method from context if the note is not top-level
-          if (previousNote) {
+          if (target.value.trim() !== '' && previousNote) {
             nestNote(note, previousNote, noteIndex, previousNoteIndex, currentLevelPath);
+          }
+        }
+        else if (e.key === 'Backspace') {
+
+          if (target.value.trim() === '') {
+            deleteNote(note, noteIndex, currentLevelPath);
+            //TODO - refocus on the end of the last note vertically
+            //Array or vertical order?
           }
         }
     };
