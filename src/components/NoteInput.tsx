@@ -31,19 +31,14 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
         }
         else if (e.key === 'Tab') {
           e.preventDefault(); // Stop the default tab action
-          //TODO
 
           //Call the nestNote method is the note is not the first one.
           //Use the previous sibling as the new parent
           //...
           // Call the nestNote method from context if the note is not top-level
-          //if (parentId) {
-            //// Assume we have a function `findPreviousSiblingId` that finds the previous sibling note's ID
-            //const previousSiblingId = findPreviousSiblingId(noteId);
-            //if (previousSiblingId) {
-              //nestNote(noteId, previousSiblingId);
-            //}
-          //}
+          if (previousNote) {
+            nestNote(note, previousNote, noteIndex, previousNoteIndex, currentLevelPath);
+          }
         }
     };
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

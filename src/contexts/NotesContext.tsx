@@ -70,27 +70,32 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         });
     };
 
-    const nestNote = (noteId: string, newParentId: string) => {
+    const nestNote = (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number, currentLevelPath: string) => {
       setNotes(prevNotes => {
           const newNotes = JSON.parse(JSON.stringify(prevNotes));
-          const noteIndex = newNotes.findIndex(note => note.id === noteId);
-          const parentIndex = newNotes.findIndex(note => note.id === newParentId);
+          const newNote = JSON.parse(JSON.stringify(note));
+          const newPreviousNote = JSON.parse(JSON.stringify(previousNote));
 
-          if (noteIndex < 0 || parentIndex < 0) {
+          if (noteIndex < 0 || previousNoteIndex < 0) {
               return newNotes; // No changes if indices are not valid
           }
 
           // Remove note from its current position
-          const [noteToNest] = newNotes.splice(noteIndex, 1);
+          let pathWithArrayPosition = currentLevelPath;
+
+          if (pathWithArrayPosition !== "") {
+            pathWithArrayPosition = pathWithArrayPosition + ".";
+          }
+
+          removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
 
           // Update its parentId
-          noteToNest.parentId = newParentId;
+          newNote.parentId = previousNote.id;
+          // Add to parents children 
+          newPreviousNote.children = [...previousNote.children, newNote];
 
-          // Add note to the children array of the parent note
-          const parentNote = newNotes[parentIndex];
-          parentNote.children = [...parentNote.children, noteToNest];
-
-          return newNotes;
+          //update in the notes itself
+          return updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
       });
     };
 
@@ -139,7 +144,39 @@ function insertByPath(path: string, obj: any, root: any): any {
   }
   return root;
 }
+function removeNoteByPath(note: NoteInterface, path: string, root: any): any {
+  //log a deep copy of root
+  console.log(JSON.parse(JSON.stringify(root)));
+  // Split the path into parts
+  const parts = path.split('.');
+
+  //return if there are no parts
+  if(parts.length === 0) return;
+  
+  // Find the index to insert at and remove it from the path
+  const lastIndex = parts.pop();
+
+  // Reduce the parts array to find the parent array
+  const parentArray = parts.reduce((current: any, part: string) => {
+    // If it's an attribute name, return the attribute
+    if(isNaN(parseInt(part))) return current[part];
+    // If it's an index, return the item at index
+    return current[parseInt(part)];
+  }, root);
+
+  //It must not do anything if it's run again
+  console.log(parentArray[parseInt(lastIndex!)].id)
+  console.log(note.id)
+  if(parentArray[parseInt(lastIndex!)].id === note.id) {
+    parentArray.splice(parseInt(lastIndex!), 1);
+  }
+  console.log(root)
+
+  return root;
+}
 function updateByPath(path: string, obj: any, root: any): any {
+
+  console.log(JSON.parse(JSON.stringify(root)));
   // Split the path into parts
   const parts = path.split('.');
 
@@ -160,5 +197,6 @@ function updateByPath(path: string, obj: any, root: any): any {
   if(!isNaN(parseInt(lastIndex!))) {
     parentArray[parseInt(lastIndex!)] = obj;
   }
+  console.log(root);
   return root;
 }
