@@ -3,7 +3,7 @@ import { useNotes, NoteInterface } from '../contexts/NotesContext';
 import NoteInput from './NoteInput';
 
 const Note: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {
-  const nextPath = `${currentLevelPath}.${noteIndex}.children`;
+  const nextPath = currentLevelPath ? `${currentLevelPath}.${noteIndex}.children` : `${noteIndex}.children`;
 
   return (
     <li className="mb-2 border border-indigo-500 rounded p-2 lg:p-4 bg-gray-100 font-semibold">

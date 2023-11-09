@@ -61,6 +61,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     };
 
     const updateNote = (updatedNote: NoteInterface, noteIndex: number, currentLevelPath: string) => {
+      console.log(currentLevelPath)
         if (currentLevelPath !== "") {
           currentLevelPath = currentLevelPath + ".";
         }
@@ -146,7 +147,6 @@ function insertByPath(path: string, obj: any, root: any): any {
 }
 function removeNoteByPath(note: NoteInterface, path: string, root: any): any {
   //log a deep copy of root
-  console.log(JSON.parse(JSON.stringify(root)));
   // Split the path into parts
   const parts = path.split('.');
 
@@ -165,18 +165,16 @@ function removeNoteByPath(note: NoteInterface, path: string, root: any): any {
   }, root);
 
   //It must not do anything if it's run again
-  console.log(parentArray[parseInt(lastIndex!)].id)
-  console.log(note.id)
   if(parentArray[parseInt(lastIndex!)].id === note.id) {
     parentArray.splice(parseInt(lastIndex!), 1);
   }
-  console.log(root)
 
   return root;
 }
 function updateByPath(path: string, obj: any, root: any): any {
 
   console.log(JSON.parse(JSON.stringify(root)));
+  console.log(path);
   // Split the path into parts
   const parts = path.split('.');
 
@@ -197,6 +195,6 @@ function updateByPath(path: string, obj: any, root: any): any {
   if(!isNaN(parseInt(lastIndex!))) {
     parentArray[parseInt(lastIndex!)] = obj;
   }
-  console.log(root);
+  console.log(JSON.parse(JSON.stringify(root)));
   return root;
 }
