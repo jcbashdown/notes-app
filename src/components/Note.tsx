@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNotes, NoteInterface } from '../contexts/NotesContext';
+import { NoteInterface } from '../contexts/NotesContext';
 import NoteInput from './NoteInput';
 
 const Note: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {

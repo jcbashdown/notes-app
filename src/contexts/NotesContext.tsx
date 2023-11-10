@@ -189,8 +189,6 @@ function removeNoteByPath(note: NoteInterface, path: string, root: any): any {
 }
 function updateByPath(path: string, obj: any, root: any): any {
 
-  console.log(JSON.parse(JSON.stringify(root)));
-  console.log(path);
   // Split the path into parts
   const parts = path.split('.');
 
@@ -211,6 +209,161 @@ function updateByPath(path: string, obj: any, root: any): any {
   if(!isNaN(parseInt(lastIndex!))) {
     parentArray[parseInt(lastIndex!)] = obj;
   }
-  console.log(JSON.parse(JSON.stringify(root)));
   return root;
 }
+function findByPath(path: string, root: any): NoteInterface | null {
+
+  // Split the path into parts
+  const parts = path.split('.');
+
+  //return if there are no parts
+  if(parts.length === 0) return;
+  
+  // Find the index to insert at and remove it from the path
+  const lastIndex = parts.pop();
+
+  // Reduce the parts array to find the parent array
+  const parentArray = parts.reduce((current: any, part: string) => {
+    // If it's an attribute name, return the attribute
+    if(isNaN(parseInt(part))) return current[part];
+    // If it's an index, return the item at index
+    return current[parseInt(part)];
+  }, root);
+
+  if(!isNaN(parseInt(lastIndex!))) {
+    return parentArray[parseInt(lastIndex!)];
+  }
+  return null;
+}
+
+/*
+ * Take a dot separated path like 1.children.2.children.1
+ * Find the preceding element in the notes object which looks like this:
+ * $notes: NoteInterface[] = [
+ *    {
+ *      id: "123xyz",
+ *      title: "First Note",
+ *      parentId: null,
+ *      children: [
+ *        {
+ *          id: "321abc",
+ *          title: "Child of First Note",
+ *          parentId: "123xyz",
+ *          children: []
+ *        },
+ *        {
+ *          id: "434gts",
+ *          title: "Second Child of First Note",
+ *          parentId: "123xyz",
+ *          children: [
+ *            {
+ *              id: "111ggg",
+ *              title: "Final child of first note",
+ *              parentId: "434gts",
+ *              children: []
+ *            }
+ *          ]
+ *        }
+ *      ]
+ *    },
+ *    {
+ *      id: "456def",
+ *      title: "Second Note",
+ *      parentId: null,
+ *      children: [
+ *        {
+ *          id: "654fed",
+ *          title: "Child of Second Note",
+ *          parentId: "456def",
+ *          children: []
+ *        },
+ *        {
+ *          id: "789ghi",
+ *          title: "Another Child of Second Note",
+ *          parentId: "456def",
+ *          children: []
+ *        },
+ *        {
+ *          id: "123abc",
+ *          title: "Here is the title!",
+ *          parentId: "456def",
+ *          children: [
+ *            {
+ *              id: "128abc",
+ *              title: "Another Title!",
+ *              parentId: "123abc",
+ *              children: []
+ *            },
+ *            {
+ *              id: "126abc",
+ *              title: "A Title!",
+ *              parentId: "123abc",
+ *              children: []
+ *            }
+ *          ]
+ *        }
+ *      ]
+ *    }
+ * ]
+ *
+ * So for "1.children.2.children.1" we return:
+ *   {
+ *     id: "128abc"
+ *     title: "Another title!",
+ *     parentId: "123abc",
+ *     children: []
+ *   }
+ * and for 1.children.2.children.0:
+ *   {
+ *     id: "123abc"
+ *     title: "Here is the title!",
+ *     parentId: "456def",
+ *     children: []
+ *   }
+ * and more complicated "1" should return
+ *   {
+ *     id: "111ggg",
+ *     title: "Final child of first note",
+ *     parentId: "434gts",
+ *     children: []
+ *   }
+ * i.e. the final child of "0" (not necessarily the deepest)
+ *
+ */
+export const findPreviousNote = (currentNotePath: string, notes: NoteInterface[]) => {
+  // Recursive function to traverse the note tree and find the previous note.
+  const traverse = (pathSteps: number[], currentNodes: NoteInterface[]): NoteInterface | undefined => {
+    const step = pathSteps[0];
+    if (step !== undefined) {
+      if (step === 0 && pathSteps.length === 1) {
+        // Base case for "X.children.0" path, return the parent note
+        return currentNodes[0].parentId ? notes.find(note => note.id === currentNodes[0].parentId) : undefined;
+      } else {
+        // Traverse down one level in the tree
+        const targetNode = currentNodes[step];
+        if (targetNode && targetNode.children && targetNode.children.length > 0) {
+          return traverse(pathSteps.slice(1), targetNode.children);
+        } else {
+          // If there are no more steps or children, return the current node
+          return targetNode;
+        }
+      }
+    }
+    // If no more steps, return the last child of the last node
+    return currentNodes[currentNodes.length - 1];
+  };
+
+  // Parse the path into an array of numbers
+  const pathSteps = currentNotePath.split('.').map(step => {
+    // Convert path step to index, adjust for 0-based indexing
+    return parseInt(step, 10) - 1;
+  });
+
+  // Handle edge cases for empty or invalid paths
+  if (!currentNotePath || !notes || pathSteps.includes(-1)) {
+    return undefined;
+  }
+
+  // Start traversing from the root level notes
+  return traverse(pathSteps, notes);
+};

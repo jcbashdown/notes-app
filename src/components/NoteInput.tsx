@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useNotes, NoteInterface } from '../contexts/NotesContext';
 
 const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {
@@ -55,6 +55,7 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
     return (
         <input
             ref={inputRef}
+            data-note-id={note.id} 
             type="text"
             className="border p-2"
             value={note.title}
