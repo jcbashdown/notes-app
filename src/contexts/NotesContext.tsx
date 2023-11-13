@@ -15,6 +15,7 @@ interface NotesContextType {
     updateNote: (updatedNote: NoteInterface, noteIndex: number, currentLevelPath: string) => void;
     deleteNote: (note: NoteInterface, noteIndex: number, currentLevelPath: string) => void;
     nestNote: (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number | null, currentLevelPath: string) => void;
+    findPrecedingNote: (currentNotePath: string, currentNote: NoteInterface) => NoteInterface | null;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -115,9 +116,12 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           return updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
       });
     };
+    const findPrecedingNote = (currentNotePath: string, currentNote: NoteInterface): NoteInterface | null => {
+      return findPreviousNote(currentNotePath, notes, currentNote);
+    }
 
     return (
-        <NotesContext.Provider value={{ notes, addNote, updateNote, deleteNote, nestNote }}>
+        <NotesContext.Provider value={{ notes, addNote, updateNote, deleteNote, nestNote, findPrecedingNote }}>
             {children}
         </NotesContext.Provider>
     );
@@ -217,7 +221,7 @@ function findByPath(path: string, root: any): NoteInterface | null {
   const parts = path.split('.');
 
   //return if there are no parts
-  if(parts.length === 0) return;
+  if(parts.length === 0) return null;
   
   // Find the index to insert at and remove it from the path
   const lastIndex = parts.pop();
@@ -330,40 +334,54 @@ function findByPath(path: string, root: any): NoteInterface | null {
  * i.e. the final child of "0" (not necessarily the deepest)
  *
  */
-export const findPreviousNote = (currentNotePath: string, notes: NoteInterface[]) => {
-  // Recursive function to traverse the note tree and find the previous note.
-  const traverse = (pathSteps: number[], currentNodes: NoteInterface[]): NoteInterface | undefined => {
-    const step = pathSteps[0];
-    if (step !== undefined) {
-      if (step === 0 && pathSteps.length === 1) {
-        // Base case for "X.children.0" path, return the parent note
-        return currentNodes[0].parentId ? notes.find(note => note.id === currentNodes[0].parentId) : undefined;
-      } else {
-        // Traverse down one level in the tree
-        const targetNode = currentNodes[step];
-        if (targetNode && targetNode.children && targetNode.children.length > 0) {
-          return traverse(pathSteps.slice(1), targetNode.children);
-        } else {
-          // If there are no more steps or children, return the current node
-          return targetNode;
-        }
-      }
+export const findPreviousNote = (currentNotePath: string, notes: NoteInterface[], currentNote: NoteInterface): NoteInterface | null => {
+  let lastChildren = null;
+  if(currentNotePath === "0") {
+    return null
+  } else if(currentNotePath.endsWith(".children.0")) {
+    //If the currentNotePath ends in chilren.0 then remove it and call findPreviousNote again
+    currentNotePath = currentNotePath.replace(/.children.0$/, "");
+    return findByPath(currentNotePath, notes);
+  } else { 
+    //get the last part of the path
+    const pathParts = currentNotePath.split(".");
+    const lastPart = pathParts.pop();
+    //if it's not an integer then return null
+    if(!lastPart || isNaN(parseInt(lastPart))) return null;
+    //put the path back together, now without the final part
+    currentNotePath = pathParts.join(".");
+    //subtract 1 from the last part
+    let newLastPart = parseInt(lastPart) - 1;
+    //currentNotePath is not an empty string then combine with the new last part
+    //otherwise just use the new last part
+    if(currentNotePath !== "") {
+      currentNotePath = currentNotePath + "." + newLastPart;
+    } else {
+      currentNotePath = newLastPart.toString();
     }
-    // If no more steps, return the last child of the last node
-    return currentNodes[currentNodes.length - 1];
-  };
-
-  // Parse the path into an array of numbers
-  const pathSteps = currentNotePath.split('.').map(step => {
-    // Convert path step to index, adjust for 0-based indexing
-    return parseInt(step, 10) - 1;
-  });
-
-  // Handle edge cases for empty or invalid paths
-  if (!currentNotePath || !notes || pathSteps.includes(-1)) {
-    return undefined;
+    //find the note at the new note path
+    const currentNote = findByPath(currentNotePath, notes);
+    if(currentNote) {
+      lastChildren = findLastTwoChildren(currentNote);
+    }
   }
 
-  // Start traversing from the root level notes
-  return traverse(pathSteps, notes);
+  if(lastChildren && lastChildren[0] && lastChildren[0].id !== currentNote.id) {
+    return lastChildren[0];
+  } else if(lastChildren && lastChildren[1]) {
+    //if the last child is the same as the current note then return the previous note
+    return lastChildren[1];
+  }
+  return null;
 };
+
+const findLastTwoChildren = (currentNote: NoteInterface, previousNote: NoteInterface | null = null): Array<NoteInterface | null> => {
+  //find the last child of the current note
+  const lastChild = currentNote.children[currentNote.children.length - 1];
+  //if the last child has no children then return the last child
+  if(!lastChild) {
+    return [currentNote, previousNote];
+  } else {
+    return findLastTwoChildren(lastChild, currentNote);
+  } 
+}

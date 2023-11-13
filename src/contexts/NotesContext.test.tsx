@@ -72,7 +72,7 @@ const notesFixtures: NoteInterface[] = [
 
 describe('findPreviousNote', () => {
   it('should return the previous note to render which may be a note at a lower level', () => {
-    const result = findPreviousNote("1", notesFixtures);
+    const result = findPreviousNote("1", notesFixtures, notesFixtures[1]);
     expect(result).toEqual({
       id: "111ggg",
       title: "Final child of first note",
@@ -82,7 +82,7 @@ describe('findPreviousNote', () => {
   });
 
   it('should return the prior sibling at the same level', () => {
-    const result = findPreviousNote("1.children.2.children.1", notesFixtures);
+    const result = findPreviousNote("1.children.2.children.1", notesFixtures, notesFixtures[1]["children"][2]["children"][1]);
     expect(result).toEqual({
       id: "128abc",
       title: "Another Title!",
@@ -92,7 +92,7 @@ describe('findPreviousNote', () => {
   });
 
   it('should return the parent node if index is 0 at final position (1.children.2.children.0)', () => {
-    const result = findPreviousNote("1.children.2.children.0", notesFixtures);
+    const result = findPreviousNote("1.children.2.children.0", notesFixtures, notesFixtures[1]["children"][2]["children"][0]);
     expect(result).toEqual({
       id: "123abc",
       title: "Here is the title!",

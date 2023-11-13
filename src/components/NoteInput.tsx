@@ -2,10 +2,11 @@ import React, { useRef, useEffect } from 'react';
 import { useNotes, NoteInterface } from '../contexts/NotesContext';
 
 const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevelNotes: NoteInterface[], currentLevelPath?: string }> = ({ note, noteIndex, currentLevelNotes, currentLevelPath="" }) => {
-    const { addNote, updateNote, deleteNote, nestNote } = useNotes();
+    const { addNote, updateNote, deleteNote, nestNote, findPrecedingNote } = useNotes();
     const parentId = note.parentId;
     const previousNoteIndex = noteIndex - 1 >= 0 ? noteIndex - 1 : null;
     const previousNote = previousNoteIndex != null ? currentLevelNotes[previousNoteIndex] : null; 
+    const currentNotePath = currentLevelPath ? `${currentLevelPath}.${noteIndex}` : `${noteIndex}`;
 
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,17 +38,24 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
         }
         else if (e.key === 'Backspace') {
 
-          if (target.value.trim() === '') {
+          if (target.value.trim() === '' && currentNotePath !== '0') {
+
+            const precedingNote = findPrecedingNote(currentNotePath, note)
             deleteNote(note, noteIndex, currentLevelPath);
-            //TODO - refocus on the end of the last note vertically
-            //Array or vertical order?
+            //focus on the preceding note index which has precedingNote.id as
+            //it's data-note-id
+            if(precedingNote) {
+              const precedingNoteInput = document.querySelector(`[data-note-id="${precedingNote.id}"]`) as HTMLInputElement;
+              if(precedingNoteInput) {
+                precedingNoteInput.focus();
+              }
+            }
           }
         }
     };
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         if(value.trim() !== note.title) {
-          console.log("here");
           updateNote({...note, title: value}, noteIndex, currentLevelPath)
         }
     };
