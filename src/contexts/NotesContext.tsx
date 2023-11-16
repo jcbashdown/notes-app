@@ -2,16 +2,18 @@
 import React, { createContext, useContext, ReactNode, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { db, addNote, updateNote, /* other methods */ } from '../database/database';
+
 export interface NoteInterface {
   id: string;
-  title: string;
+  text: string;
   parentId: string | null;
   children: NoteInterface[];
 }
 
 interface NotesContextType {
     notes: NoteInterface[];
-    addNote: (title: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => void;
+    addNote: (text: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => void;
     updateNote: (updatedNote: NoteInterface, noteIndex: number, currentLevelPath: string) => void;
     deleteNote: (note: NoteInterface, noteIndex: number, currentLevelPath: string) => void;
     nestNote: (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number | null, currentLevelPath: string) => void;
@@ -26,13 +28,13 @@ interface NotesProviderProps {
 
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     const [notes, setNotes] = useState<NoteInterface[]>([
-      { id: uuidv4(), title: '', parentId: null, children: [] },
+      { id: uuidv4(), text: '', parentId: null, children: [] },
     ]);
 
-    const addNote = (title: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => {
+    const addNote = (text: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => {
         const newNote: NoteInterface = {
             id: uuidv4(), // This will create a unique identifier
-            title,
+            text,
             parentId: parentId,
             children: []
         };
@@ -246,23 +248,23 @@ function findByPath(path: string, root: any): NoteInterface | null {
  * $notes: NoteInterface[] = [
  *    {
  *      id: "123xyz",
- *      title: "First Note",
+ *      text: "First Note",
  *      parentId: null,
  *      children: [
  *        {
  *          id: "321abc",
- *          title: "Child of First Note",
+ *          text: "Child of First Note",
  *          parentId: "123xyz",
  *          children: []
  *        },
  *        {
  *          id: "434gts",
- *          title: "Second Child of First Note",
+ *          text: "Second Child of First Note",
  *          parentId: "123xyz",
  *          children: [
  *            {
  *              id: "111ggg",
- *              title: "Final child of first note",
+ *              text: "Final child of first note",
  *              parentId: "434gts",
  *              children: []
  *            }
@@ -272,35 +274,35 @@ function findByPath(path: string, root: any): NoteInterface | null {
  *    },
  *    {
  *      id: "456def",
- *      title: "Second Note",
+ *      text: "Second Note",
  *      parentId: null,
  *      children: [
  *        {
  *          id: "654fed",
- *          title: "Child of Second Note",
+ *          text: "Child of Second Note",
  *          parentId: "456def",
  *          children: []
  *        },
  *        {
  *          id: "789ghi",
- *          title: "Another Child of Second Note",
+ *          text: "Another Child of Second Note",
  *          parentId: "456def",
  *          children: []
  *        },
  *        {
  *          id: "123abc",
- *          title: "Here is the title!",
+ *          text: "Here is the text!",
  *          parentId: "456def",
  *          children: [
  *            {
  *              id: "128abc",
- *              title: "Another Title!",
+ *              text: "Another text!",
  *              parentId: "123abc",
  *              children: []
  *            },
  *            {
  *              id: "126abc",
- *              title: "A Title!",
+ *              text: "A text!",
  *              parentId: "123abc",
  *              children: []
  *            }
@@ -313,21 +315,21 @@ function findByPath(path: string, root: any): NoteInterface | null {
  * So for "1.children.2.children.1" we return:
  *   {
  *     id: "128abc"
- *     title: "Another title!",
+ *     text: "Another text!",
  *     parentId: "123abc",
  *     children: []
  *   }
  * and for 1.children.2.children.0:
  *   {
  *     id: "123abc"
- *     title: "Here is the title!",
+ *     text: "Here is the text!",
  *     parentId: "456def",
  *     children: []
  *   }
  * and more complicated "1" should return
  *   {
  *     id: "111ggg",
- *     title: "Final child of first note",
+ *     text: "Final child of first note",
  *     parentId: "434gts",
  *     children: []
  *   }

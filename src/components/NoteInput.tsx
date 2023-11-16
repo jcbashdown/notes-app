@@ -18,10 +18,10 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
         const target = e.target as HTMLInputElement;
         if (e.key === 'Enter') {
           e.preventDefault();
-          // Add a new note and focus on its input field if the current note does not have an empty title
+          // Add a new note and focus on its input field if the current note does not have an empty text
           if (target.value.trim() !== '') {
             const nextNote = currentLevelNotes[noteIndex+1] 
-            const nextNoteEmpty = !nextNote?.title; 
+            const nextNoteEmpty = !nextNote?.text; 
             if(!nextNote || !nextNoteEmpty) {
               addNote("", noteIndex, parentId, currentLevelPath);
             }
@@ -55,8 +55,8 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
     };
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        if(value.trim() !== note.title) {
-          updateNote({...note, title: value}, noteIndex, currentLevelPath)
+        if(value.trim() !== note.text) {
+          updateNote({...note, text: value}, noteIndex, currentLevelPath)
         }
     };
 
@@ -66,7 +66,7 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
             data-note-id={note.id} 
             type="text"
             className="border p-2"
-            value={note.title}
+            value={note.text}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
         />

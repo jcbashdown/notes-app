@@ -6,23 +6,23 @@ import { findPreviousNote, NoteInterface } from '../contexts/NotesContext'; // U
 const notesFixtures: NoteInterface[] = [
   {
     id: "123xyz",
-    title: "First Note",
+    text: "First Note",
     parentId: null,
     children: [
       {
         id: "321abc",
-        title: "Child of First Note",
+        text: "Child of First Note",
         parentId: "123xyz",
         children: []
       },
       {
         id: "434gts",
-        title: "Second Child of First Note",
+        text: "Second Child of First Note",
         parentId: "123xyz",
         children: [
           {
             id: "111ggg",
-            title: "Final child of first note",
+            text: "Final child of first note",
             parentId: "434gts",
             children: []
           }
@@ -32,35 +32,35 @@ const notesFixtures: NoteInterface[] = [
   },
   {
     id: "456def",
-    title: "Second Note",
+    text: "Second Note",
     parentId: null,
     children: [
       {
         id: "654fed",
-        title: "Child of Second Note",
+        text: "Child of Second Note",
         parentId: "456def",
         children: []
       },
       {
         id: "789ghi",
-        title: "Another Child of Second Note",
+        text: "Another Child of Second Note",
         parentId: "456def",
         children: []
       },
       {
         id: "123abc",
-        title: "Here is the title!",
+        text: "Here is the text!",
         parentId: "456def",
         children: [
           {
             id: "128abc",
-            title: "Another Title!",
+            text: "Another text!",
             parentId: "123abc",
             children: []
           },
           {
             id: "126abc",
-            title: "A Title!",
+            text: "A text!",
             parentId: "123abc",
             children: []
           }
@@ -75,7 +75,7 @@ describe('findPreviousNote', () => {
     const result = findPreviousNote("1", notesFixtures, notesFixtures[1]);
     expect(result).toEqual({
       id: "111ggg",
-      title: "Final child of first note",
+      text: "Final child of first note",
       parentId: "434gts",
       children: []
     });
@@ -85,7 +85,7 @@ describe('findPreviousNote', () => {
     const result = findPreviousNote("1.children.2.children.1", notesFixtures, notesFixtures[1]["children"][2]["children"][1]);
     expect(result).toEqual({
       id: "128abc",
-      title: "Another Title!",
+      text: "Another text!",
       parentId: "123abc",
       children: []
     });
@@ -95,18 +95,18 @@ describe('findPreviousNote', () => {
     const result = findPreviousNote("1.children.2.children.0", notesFixtures, notesFixtures[1]["children"][2]["children"][0]);
     expect(result).toEqual({
       id: "123abc",
-      title: "Here is the title!",
+      text: "Here is the text!",
       parentId: "456def",
       children: [
           {
             id: "128abc",
-            title: "Another Title!",
+            text: "Another text!",
             parentId: "123abc",
             children: []
           },
           {
             id: "126abc",
-            title: "A Title!",
+            text: "A text!",
             parentId: "123abc",
             children: []
           }
