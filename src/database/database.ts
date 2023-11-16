@@ -1,16 +1,13 @@
-import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin } from 'rxdb';
+import { createRxDatabase, RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { NoteInterface } from '../contexts/NotesContext';
 
-//Maybe not needed - can we have recursive types like this with rxdb or do we
-//need to just get ids?
-// Define a TypeScript interface for your note
-//export interface NoteInterface {
-  //id: string;
-  //text: string;
-  //parentId: string | null;
-  //children: NoteInterface[];
-//}
+export interface DBNoteInterface {
+  id: string;
+  text: string;
+  parentIds: string[];
+  childIds: string[];
+}
 
 // Schema as defined previously
 const noteSchema = {
@@ -25,16 +22,16 @@ const noteSchema = {
     text: {
       type: 'string',
     },
-    parentId: {
-      type: ['string', 'null'],
-    },
-    children: {
-      type: 'array',
+    parentIds: {
+      type: ['array', 'null'],
       items: {
-        type: 'object',
-        properties: {
-          // Define properties for children if necessary
-        }
+        type: 'string'
+      }
+    },
+    childIds: {
+      type: ['array', 'null'],
+      items: {
+        type: 'string'
       }
     }
   },
@@ -42,7 +39,7 @@ const noteSchema = {
 };
 
 // Define TypeScript types for the database and collection
-type NotesCollection = RxCollection<NoteInterface>;
+type NotesCollection = RxCollection<DBNoteInterface>;
 type NotesDatabase = RxDatabase<{ notes: NotesCollection }>;
 
 // Initialize the database and add collections
@@ -65,13 +62,45 @@ async function initializeDB(): Promise<NotesDatabase> {
 
 // Example function to add a note
 export async function addNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
-  await db.notes.insert(note);
+  //Create an instance of DBNoteInterface from NoteInterface
+  const dbNote = convertNoteInterfaceToDBNoteInterface(note);
+
+  await db.notes.insert(dbNote);
 }
 
 // Example function to update a note
 export async function updateNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
-  await db.notes.upsert({ id: noteId, ...updates });
+  //convert updates partial to dbNoteInterface partial
+  const dbNoteUpdates = convertPartialNoteInterfaceToPartialDBNoteInterface(updates);
+  await db.notes.upsert({ id: noteId, ...dbNoteUpdates });
 }
 
 // Initialize and export the database
 export const db = initializeDB();
+
+//Utilities
+const convertNoteInterfaceToDBNoteInterface = (note: NoteInterface): DBNoteInterface => {
+  return {
+    id: note.id,
+    text: note.text,
+    //TODO - multiple parents
+    parentIds: note.parentId ? [note.parentId] : [],
+    childIds: note.children.map(child => child.id),
+  }
+}
+//convert Partial NoteInterface to Partial DBNoteInterface
+const convertPartialNoteInterfaceToPartialDBNoteInterface = (note: Partial<NoteInterface>): Partial<DBNoteInterface> => {
+  const dbNote: Partial<DBNoteInterface> = {};
+  for (const key in note) {
+    if (key === 'children') {
+      dbNote.childIds = note.children?.map(child => child.id);
+    } else if (key === 'parentId') {
+      dbNote.parentIds = note.parentId ? [note.parentId] : [];
+    } else if (key === 'id') {
+      dbNote['id'] = note['id'];
+    } else if (key === 'text') {
+      dbNote['text'] = note['text'];
+    }
+  }
+  return dbNote;
+}
