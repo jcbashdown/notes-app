@@ -2,7 +2,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { NotesDatabase, db, dbAddNote, dbUpdateNote /* other methods */ } from '../database/database';
+import { NotesDatabase, db, dbAddNote, dbUpdateNote, dbDeleteNoteById } from '../database/database';
 //Utils
 import {insertByPath, removeNoteByPath, updateByPath, findPreviousNote, convertDBNotesToNoteInterfaces} from './utilities';
 
@@ -88,7 +88,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
             // If no specific position is given, add the new note to the end of the list
             insertByPath(pathWithArrayPosition+"[]", newNote, newNotes);
           }
-
+          dbAddNote(dbInstance, newNote);
           return newNotes;
         });
     };
@@ -99,16 +99,18 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           currentLevelPath = currentLevelPath + ".";
         }
         setNotes(prevNotes => {
-          const newNotes = JSON.parse(JSON.stringify(prevNotes));
-          return updateByPath(`${currentLevelPath}${noteIndex}`, updatedNote, newNotes);
+          let newNotes = JSON.parse(JSON.stringify(prevNotes));
+          newNotes = updateByPath(`${currentLevelPath}${noteIndex}`, updatedNote, newNotes);
+          dbUpdateNote(dbInstance, updatedNote.id, updatedNote);
+          return newNotes;
         });
-        dbUpdateNote(dbInstance, updatedNote.id, updatedNote);
         
     };
 
     const deleteNote = (note: NoteInterface, noteIndex: number, currentLevelPath: string) => {
+      if (!dbInstance) return; // Ensure dbInstance is available
       setNotes(prevNotes => {
-          const newNotes = JSON.parse(JSON.stringify(prevNotes));
+          let newNotes = JSON.parse(JSON.stringify(prevNotes));
           const newNote = JSON.parse(JSON.stringify(note));
 
           // Remove note from its current position
@@ -118,12 +120,16 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
             pathWithArrayPosition = pathWithArrayPosition + ".";
           }
 
-          return removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
+          newNotes = removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
+          dbDeleteNoteById(dbInstance, newNote.id);
+          return newNotes;
+
       });
     }
     const nestNote = (note: NoteInterface, previousNote: NoteInterface, noteIndex: number, previousNoteIndex: number | null, currentLevelPath: string) => {
+      if (!dbInstance) return; // Ensure dbInstance is available
       setNotes(prevNotes => {
-          const newNotes = JSON.parse(JSON.stringify(prevNotes));
+          let newNotes = JSON.parse(JSON.stringify(prevNotes));
           const newNote = JSON.parse(JSON.stringify(note));
           const newPreviousNote = JSON.parse(JSON.stringify(previousNote));
 
@@ -146,7 +152,10 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           newPreviousNote.children = [...previousNote.children, newNote];
 
           //update in the notes itself
-          return updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
+          newNotes = updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
+          //update in the database
+          dbUpdateNote(dbInstance, newPreviousNote.id, newPreviousNote);
+          dbUpdateNote(dbInstance, newNote.id, newNote);
       });
     };
     const findPrecedingNote = (currentNotePath: string, currentNote: NoteInterface): NoteInterface | null => {

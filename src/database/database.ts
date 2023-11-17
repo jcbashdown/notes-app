@@ -60,7 +60,6 @@ async function initializeDB(): Promise<NotesDatabase> {
   return db;
 }
 
-// Example function to add a note
 export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
   //Create an instance of DBNoteInterface from NoteInterface
   const dbNote = convertNoteInterfaceToDBNoteInterface(note);
@@ -68,11 +67,15 @@ export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise
   await db.notes.insert(dbNote);
 }
 
-// Example function to update a note
 export async function dbUpdateNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
   //convert updates partial to dbNoteInterface partial
   const dbNoteUpdates = convertPartialNoteInterfaceToPartialDBNoteInterface(updates);
   await db.notes.upsert({ id: noteId, ...dbNoteUpdates });
+}
+
+//function to delete a note
+export async function dbDeleteNoteById(db: NotesDatabase, noteId: string): Promise<void> {
+  await db.notes.findOne(noteId).remove();
 }
 
 // Initialize and export the database
