@@ -1,6 +1,7 @@
 // src/contexts/NotesContext.test.tsx
 
-import { findPreviousNote, NoteInterface, convertDBNotesToNoteInterfaces } from '../contexts/NotesContext';
+import { findPreviousNote, convertDBNotesToNoteInterfaces } from './utilities';
+import { NoteInterface } from './NotesContext';
 import { DBNoteInterface } from '../database/database';
 
 const notesFixtures: NoteInterface[] = [

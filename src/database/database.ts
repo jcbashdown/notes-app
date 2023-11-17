@@ -40,7 +40,7 @@ const noteSchema = {
 
 // Define TypeScript types for the database and collection
 type NotesCollection = RxCollection<DBNoteInterface>;
-type NotesDatabase = RxDatabase<{ notes: NotesCollection }>;
+export type NotesDatabase = RxDatabase<{ notes: NotesCollection }>;
 
 // Initialize the database and add collections
 async function initializeDB(): Promise<NotesDatabase> {
@@ -61,7 +61,7 @@ async function initializeDB(): Promise<NotesDatabase> {
 }
 
 // Example function to add a note
-export async function addNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
+export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
   //Create an instance of DBNoteInterface from NoteInterface
   const dbNote = convertNoteInterfaceToDBNoteInterface(note);
 
@@ -69,7 +69,7 @@ export async function addNote(db: NotesDatabase, note: NoteInterface): Promise<v
 }
 
 // Example function to update a note
-export async function updateNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
+export async function dbUpdateNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
   //convert updates partial to dbNoteInterface partial
   const dbNoteUpdates = convertPartialNoteInterfaceToPartialDBNoteInterface(updates);
   await db.notes.upsert({ id: noteId, ...dbNoteUpdates });
