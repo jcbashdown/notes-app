@@ -1,8 +1,8 @@
 // NotesContext.tsx
-import React, { createContext, useContext, ReactNode, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { db, addNote, updateNote, /* other methods */ } from '../database/database';
+import { db, addNote, updateNote, DBNoteInterface /* other methods */ } from '../database/database';
 
 export interface NoteInterface {
   id: string;
@@ -27,9 +27,20 @@ interface NotesProviderProps {
 }
 
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
-    const [notes, setNotes] = useState<NoteInterface[]>([
-      { id: uuidv4(), text: '', parentId: null, children: [] },
-    ]);
+    const [notes, setNotes] = useState<NoteInterface[]>([]);
+
+    const [loading, setLoading] = useState(true); // New state for loading
+
+    useEffect(() => {
+        // Initialize database and fetch initial notes
+        const init = async () => {
+            //const dbInstance = await db;
+            //const initialNotes = await dbInstance.notes.find().exec();
+            //setNotes(convertDBNotesToNoteInterfaces(initialNotes));
+            //setLoading(false);
+        };
+        init();
+    }, []);
 
     const addNote = (text: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => {
         const newNote: NoteInterface = {
@@ -387,3 +398,31 @@ const findLastTwoChildren = (currentNote: NoteInterface, previousNote: NoteInter
     return findLastTwoChildren(lastChild, currentNote);
   } 
 }
+
+export const convertDBNotesToNoteInterfaces = (dbNotes: DBNoteInterface[]): NoteInterface[] => {
+  const notes: NoteInterface[] = [];
+  const noteMap: { [key: string]: NoteInterface } = {};
+
+  // First, create all notes and store them in a map for easy access
+  dbNotes.forEach(dbNote => {
+    noteMap[dbNote.id] = {
+      id: dbNote.id,
+      text: dbNote.text,
+      parentId: dbNote.parentIds.length > 0 ? dbNote.parentIds[0] : null, // Assuming single parent
+      children: []
+    };
+  });
+
+  // Then, assign children to their respective parents
+  dbNotes.forEach(dbNote => {
+    if (dbNote.parentIds.length > 0) {
+      const parentNote = noteMap[dbNote.parentIds[0]]; // Assuming single parent
+      parentNote.children.push(noteMap[dbNote.id]);
+    } else {
+      // If there are no parents, it's a root note
+      notes.push(noteMap[dbNote.id]);
+    }
+  });
+
+  return notes;
+};
