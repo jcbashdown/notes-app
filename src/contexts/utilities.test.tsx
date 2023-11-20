@@ -177,9 +177,122 @@ describe('findPreviousNote', () => {
     });
   });
 });
+const notesFixturesWithOrphans: NoteInterface[] = [
+  {
+    id: "123xyz",
+    text: "First Note",
+    parentId: null,
+    children: [
+      {
+        id: "321abc",
+        text: "Child of First Note",
+        parentId: "123xyz",
+        children: []
+      }
+    ]
+  },
+  {
+    id: "456def",
+    text: "Second Note",
+    parentId: null,
+    children: [
+      {
+        id: "654fed",
+        text: "Child of Second Note",
+        parentId: "456def",
+        children: []
+      },
+      {
+        id: "789ghi",
+        text: "Another Child of Second Note",
+        parentId: "456def",
+        children: []
+      },
+      {
+        id: "123abc",
+        text: "Here is the text!",
+        parentId: "456def",
+        children: [
+          {
+            id: "128abc",
+            text: "Another text!",
+            parentId: "123abc",
+            children: []
+          },
+          {
+            id: "126abc",
+            text: "A text!",
+            parentId: "123abc",
+            children: []
+          }
+        ]
+      }
+    ]
+  }
+];
+const dbNotesFixturesWithOrphans: DBNoteInterface[] = [
+  {
+    id: "123xyz",
+    text: "First Note",
+    parentIds: [],
+    childIds: ["321abc", "434gts"]
+  },
+  {
+    id: "321abc",
+    text: "Child of First Note",
+    parentIds: ["123xyz"],
+    childIds: []
+  },
+  {
+    id: "111ggg",
+    text: "Final child of first note",
+    parentIds: ["434gts"],
+    childIds: []
+  },
+  {
+    id: "456def",
+    text: "Second Note",
+    parentIds: [],
+    childIds: ["654fed", "789ghi", "123abc"]
+  },
+  {
+    id: "654fed",
+    text: "Child of Second Note",
+    parentIds: ["456def"],
+    childIds: []
+  },
+  {
+    id: "789ghi",
+    text: "Another Child of Second Note",
+    parentIds: ["456def"],
+    childIds: []
+  },
+  {
+    id: "123abc",
+    text: "Here is the text!",
+    parentIds: ["456def"],
+    childIds: ["128abc", "126abc"]
+  },
+  {
+    id: "128abc",
+    text: "Another text!",
+    parentIds: ["123abc"],
+    childIds: []
+  },
+  {
+    id: "126abc",
+    text: "A text!",
+    parentIds: ["123abc"],
+    childIds: []
+  }
+];
 describe('convertDBNotesToNoteInterfaces', () => {
   it('should return the DB notes hydrated and nested as full notes', () => {
     const result = convertDBNotesToNoteInterfaces(dbNotesFixtures);
     expect(result).toEqual(notesFixtures);
+  });
+  it('should handle orphaned notes', () => {
+    const result = convertDBNotesToNoteInterfaces(dbNotesFixturesWithOrphans);
+    expect(result).toEqual(notesFixturesWithOrphans);
   });
 });

@@ -156,6 +156,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           //update in the database
           dbUpdateNote(dbInstance, newPreviousNote.id, newPreviousNote);
           dbUpdateNote(dbInstance, newNote.id, newNote);
+          return newNotes;
       });
     };
     const findPrecedingNote = (currentNotePath: string, currentNote: NoteInterface): NoteInterface | null => {

@@ -268,7 +268,7 @@ export const convertDBNotesToNoteInterfaces = (dbNotes: DBNoteInterface[]): Note
   dbNotes.forEach(dbNote => {
     if (dbNote.parentIds.length > 0) {
       const parentNote = noteMap[dbNote.parentIds[0]]; // Assuming single parent
-      parentNote.children.push(noteMap[dbNote.id]);
+      parentNote?.children.push(noteMap[dbNote.id]);
     } else {
       // If there are no parents, it's a root note
       notes.push(noteMap[dbNote.id]);
