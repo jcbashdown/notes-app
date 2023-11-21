@@ -1,5 +1,7 @@
 import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin, removeRxDatabase, RxError } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
+import { replicateGraphQL, RxGraphQLReplicationState } from 'rxdb/plugins/replication-graphql';
+
 import { NoteInterface } from '../contexts/NotesContext';
 
 export interface DBNoteInterface {
@@ -64,9 +66,79 @@ async function initializeDB(): Promise<NotesDatabase> {
       schema: noteSchema
     }
   });
+  const replicationState: RxGraphQLReplicationState<DBNoteInterface, string> = replicateGraphQL({
+      collection: db.notes,
+      url: {
+        http: 'http://localhost:3000/graphql'
+      },
+      //headers: {
+          //'Authorization': 'Bearer your-token', // if required
+      //},
+      pull: {
+          queryBuilder: pullQueryBuilder, // function returning the GraphQL query for pulling data
+          responseModifier: pullResponseModifier,
+          modifier: pulledDocModifier,    // function to modify pulled documents before they are stored
+          dataPath: ['data', 'notes']
+      },
+      push: {
+          queryBuilder: pushQueryBuilder, // function returning the GraphQL query for pushing data
+      },
+  });
+
+    // You can also listen to replication events
+  replicationState.error$.subscribe(err => {
+      console.error('replication error', err);
+  });
 
   return db;
 }
+
+// Define the query builders and modifiers
+const pullQueryBuilder = (lastPulledRevision: string) => {
+    const checkpoint = lastPulledRevision || new Date(0).toISOString(); // Start from the epoch if no lastPulledRevision
+    return {
+        query: `
+            query {
+                notes(checkpoint: "${checkpoint}") {
+                    id
+                    text
+                    parents {
+                        id
+                        text
+                    }
+                    children {
+                        id
+                        text
+                    }
+                }
+            }
+        `,
+        variables: {}
+    };
+};
+
+const pullResponseModifier = (response: any) => {
+  return {
+    documents: response
+  }
+}
+
+const pushQueryBuilder = (doc: any) => {
+    // Return the GraphQL mutation for pushing data
+};
+
+const pulledDocModifier = (doc: any) => {
+  console.log(doc)
+  console.log("pulledDocModifier")
+    // Assuming the server returns the data in the format required by your local DB schema
+    // You may need to transform the data here if the formats are different
+    return {
+        id: doc.id,
+        text: doc.text,
+        parentIds: doc.parents.map((parent: any) => parent.id),
+        childIds: doc.children.map((child: any) => child.id)
+    };
+};
 
 export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
   //Create an instance of DBNoteInterface from NoteInterface
