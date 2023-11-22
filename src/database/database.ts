@@ -76,9 +76,9 @@ async function initializeDB(): Promise<NotesDatabase> {
       //},
       pull: {
           queryBuilder: pullQueryBuilder, // function returning the GraphQL query for pulling data
-          responseModifier: pullResponseModifier,
+          //responseModifier: pullResponseModifier,
           modifier: pulledDocModifier,    // function to modify pulled documents before they are stored
-          dataPath: ['data', 'notes']
+          dataPath: ['data', 'notesQuery', 'syncedNotes']
       },
       push: {
           queryBuilder: pushQueryBuilder, // function returning the GraphQL query for pushing data
@@ -94,34 +94,41 @@ async function initializeDB(): Promise<NotesDatabase> {
 }
 
 // Define the query builders and modifiers
-const pullQueryBuilder = (lastPulledRevision: string) => {
-    const checkpoint = lastPulledRevision || new Date(0).toISOString(); // Start from the epoch if no lastPulledRevision
+const pullQueryBuilder = (lastPulledRevision: any) => {
+    const checkpoint = lastPulledRevision || {updatedAt: new Date(0).toISOString()}; // Start from the epoch if no lastPulledRevision
+  console.log(checkpoint)
+  console.log(lastPulledRevision)
     return {
         query: `
-            query {
-                notes(checkpoint: "${checkpoint}") {
-                    id
-                    text
-                    parents {
-                        id
-                        text
-                    }
-                    children {
-                        id
-                        text
-                    }
+          query { notesQuery {
+            syncedNotes(checkpoint: {updatedAt:"${checkpoint.updatedAt}"}) {
+              documents {
+                id
+                text
+                children {
+                  id
                 }
+                parents {
+                  id
+                }
+              }
+              checkpoint {
+                updatedAt
+              }
             }
+          }}
         `,
-        variables: {}
+        variables: {
+          checkpoint: checkpoint
+        }
     };
 };
 
-const pullResponseModifier = (response: any) => {
-  return {
-    documents: response
-  }
-}
+//const pullResponseModifier = (response: any) => {
+  //return {
+    //documents: response
+  //}
+//}
 
 const pushQueryBuilder = (doc: any) => {
     // Return the GraphQL mutation for pushing data
