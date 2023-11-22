@@ -94,6 +94,7 @@ async function initializeDB(): Promise<NotesDatabase> {
 }
 
 // Define the query builders and modifiers
+// TODO - adjust this to actually use variables
 const pullQueryBuilder = (lastPulledRevision: any) => {
     const checkpoint = lastPulledRevision || {updatedAt: new Date(0).toISOString()}; // Start from the epoch if no lastPulledRevision
   console.log(checkpoint)
@@ -130,8 +131,29 @@ const pullQueryBuilder = (lastPulledRevision: any) => {
   //}
 //}
 
-const pushQueryBuilder = (doc: any) => {
-    // Return the GraphQL mutation for pushing data
+const pushQueryBuilder = (doc: DBNoteInterface) => {
+    const query = `
+      mutation {
+      createFlatNote(input: {input:{
+        text: "${doc.text}"
+        id: "${doc.id}"
+        child_ids: "${doc.childIds}"
+        parent_ids: "${doc.parentIds}"
+      }}) {
+          note {
+            id
+            text
+          }
+        }
+      }
+    `;
+    const variables = {
+        note: doc 
+    };
+    return {
+        query,
+        variables
+    };
 };
 
 const pulledDocModifier = (doc: any) => {
