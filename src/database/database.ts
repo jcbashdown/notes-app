@@ -10,6 +10,10 @@ export interface DBNoteInterface {
   parentIds: string[];
   childIds: string[];
 }
+interface DBNotePushRow {
+    assumedMasterState: DBNoteInterface | undefined;
+    newDocumentState: DBNoteInterface | undefined;
+}
 
 // Schema as defined previously
 const noteSchema = {
@@ -131,36 +135,30 @@ const pullQueryBuilder = (lastPulledRevision: any) => {
   //}
 //}
 
-const pushQueryBuilder = (doc: DBNoteInterface) => {
-    const query = `
-      mutation {
-      createFlatNote(input: {input:{
-        text: "${doc.text}"
-        id: "${doc.id}"
-        child_ids: "${doc.childIds}"
-        parent_ids: "${doc.parentIds}"
-      }}) {
-          note {
-            id
-            text
-          }
+const pushQueryBuilder = (docs: DBNotePushRow[]) => {
+  // GraphQL mutation template
+  const mutation = `
+    mutation SyncNotes($changes: [NoteChangeInput!]!) {
+      syncNotes(changes: $changes) {
+        conflicts {
+          id
+          text
+          parentIds
+          childIds
         }
       }
-    `;
-    const variables = {
-        note: doc 
-    };
-    return {
-        query,
-        variables
-    };
+    }
+  `;
+
+  return {
+    query: mutation,
+    variables: {
+      changes: docs
+    }
+  };
 };
 
 const pulledDocModifier = (doc: any) => {
-  console.log(doc)
-  console.log("pulledDocModifier")
-    // Assuming the server returns the data in the format required by your local DB schema
-    // You may need to transform the data here if the formats are different
     return {
         id: doc.id,
         text: doc.text,
