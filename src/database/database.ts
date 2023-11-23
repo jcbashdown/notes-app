@@ -86,6 +86,9 @@ async function initializeDB(): Promise<NotesDatabase> {
       },
       push: {
           queryBuilder: pushQueryBuilder, // function returning the GraphQL query for pushing data
+          responseModifier: async function (plainResponse) {
+            return plainResponse.conflicts;
+          },
       },
   });
 
@@ -128,12 +131,6 @@ const pullQueryBuilder = (lastPulledRevision: any) => {
         }
     };
 };
-
-//const pullResponseModifier = (response: any) => {
-  //return {
-    //documents: response
-  //}
-//}
 
 const pushQueryBuilder = (docs: DBNotePushRow[]) => {
   // GraphQL mutation template
@@ -217,6 +214,11 @@ export async function dbDeleteNoteById(db: NotesDatabase, noteId: string): Promi
 
 // Initialize and export the database
 export const db = initializeDB();
+if (process.env.NODE_ENV === 'development') {
+  db.then(database => {
+     window.myNotesDb = database;
+  });
+}
 
 //Utilities
 const convertNoteInterfaceToDBNoteInterface = (note: NoteInterface): DBNoteInterface => {
