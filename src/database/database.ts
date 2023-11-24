@@ -73,13 +73,16 @@ async function initializeDB(): Promise<NotesDatabase> {
   const replicationState: RxGraphQLReplicationState<DBNoteInterface, string> = replicateGraphQL({
       collection: db.notes,
       url: {
-        http: 'http://localhost:3000/graphql'
+        http: 'http://localhost:3000/graphql',
+        ws: 'ws://locahost:3000/cable' // <- The websocket has to use a different url.
       },
       //headers: {
           //'Authorization': 'Bearer your-token', // if required
       //},
       pull: {
           queryBuilder: pullQueryBuilder, // function returning the GraphQL query for pulling data
+
+          streamQueryBuilder: pullStreamQueryBuilder,
           //responseModifier: pullResponseModifier,
           modifier: pulledDocModifier,    // function to modify pulled documents before they are stored
           dataPath: ['data', 'notesQuery', 'syncedNotes']
@@ -104,8 +107,6 @@ async function initializeDB(): Promise<NotesDatabase> {
 // TODO - adjust this to actually use variables
 const pullQueryBuilder = (lastPulledRevision: any) => {
     const checkpoint = lastPulledRevision || {updatedAt: new Date(0).toISOString()}; // Start from the epoch if no lastPulledRevision
-  console.log(checkpoint)
-  console.log(lastPulledRevision)
     return {
         query: `
           query { notesQuery {
@@ -126,6 +127,28 @@ const pullQueryBuilder = (lastPulledRevision: any) => {
             }
           }}
         `,
+        variables: {
+          checkpoint: checkpoint
+        }
+    };
+};
+const pullStreamQueryBuilder = (lastPulledRevision: any) => {
+    const checkpoint = lastPulledRevision || {updatedAt: new Date(0).toISOString()}; // Start from the epoch if no lastPulledRevision
+  const query = `
+      subscription noteChanged(checkpoint: {updatedAt:"${checkpoint.updatedAt}"}) {
+        documents {
+          id
+          text
+          childIds
+          parentIds
+          _deleted
+        }
+        checkpoint {
+          updatedAt
+        }
+    }`;
+    return {
+        query,
         variables: {
           checkpoint: checkpoint
         }
