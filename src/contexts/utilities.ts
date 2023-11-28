@@ -259,14 +259,14 @@ export const convertDBNotesToNoteInterfaces = (dbNotes: DBNoteInterface[]): Note
     noteMap[dbNote.id] = {
       id: dbNote.id,
       text: dbNote.text,
-      parentId: dbNote.parentIds.length > 0 ? dbNote.parentIds[0] : null, // Assuming single parent
+      parentId: dbNote.parentIds?.length > 0 ? dbNote.parentIds[0] : null, // Assuming single parent
       children: []
     };
   });
 
   // Then, assign children to their respective parents
   dbNotes.forEach(dbNote => {
-    if (dbNote.parentIds.length > 0) {
+    if (dbNote.parentIds?.length > 0) {
       const parentNote = noteMap[dbNote.parentIds[0]]; // Assuming single parent
       parentNote?.children.push(noteMap[dbNote.id]);
     } else {

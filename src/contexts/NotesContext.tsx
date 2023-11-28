@@ -40,11 +40,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
             try {
                 const dbInstance = await db;
                 setDbInstance(dbInstance);
-                const initialNotes = await dbInstance.notes.find().exec();
-                //if there are no initial notes then add an empty one
-                if(initialNotes.length === 0) {
-                  await dbAddNote(dbInstance, { id: uuidv4(), text: '', parentId: null, children: [] });
-                }
+                let initialNotes = await dbInstance.notes.find().exec();
                 setNotes(convertDBNotesToNoteInterfaces(initialNotes));
             } catch (error) {
                 console.error("Error initializing notes:", error);
@@ -58,6 +54,18 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
 
         init();
     }, []);
+    useEffect(() => {
+        if (!dbInstance) return;
+        
+        // Subscribe to changes in the notes collection
+        const subscription = dbInstance.notes.find().$.subscribe(updatedNotes => {
+            if (!updatedNotes) return;
+            setNotes(convertDBNotesToNoteInterfaces(updatedNotes));
+        });
+
+        // Clean up the subscription when the component is unmounted
+        return () => subscription.unsubscribe();
+    }, [dbInstance]);
 
     const addNote = (text: string, previousNoteIndex: number | null, parentId: string | null, currentLevelPath: string) => {
         if (!dbInstance) return; // Ensure dbInstance is available

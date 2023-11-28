@@ -74,7 +74,7 @@ async function initializeDB(): Promise<NotesDatabase> {
       collection: db.notes,
       url: {
         http: 'http://localhost:3000/graphql',
-        ws: 'ws://localhost:3000/cable' // <- The websocket has to use a different url.
+        //ws: 'ws://localhost:3000/cable' // <- The websocket has to use a different url.
       },
       //headers: {
           //'Authorization': 'Bearer your-token', // if required
@@ -82,7 +82,7 @@ async function initializeDB(): Promise<NotesDatabase> {
       pull: {
           queryBuilder: pullQueryBuilder, // function returning the GraphQL query for pulling data
 
-          streamQueryBuilder: pullStreamQueryBuilder,
+          //streamQueryBuilder: pullStreamQueryBuilder,
           //responseModifier: pullResponseModifier,
           modifier: pulledDocModifier,    // function to modify pulled documents before they are stored
           dataPath: ['data', 'notesQuery', 'syncedNotes']
@@ -197,7 +197,7 @@ export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise
   const dbNote = convertNoteInterfaceToDBNoteInterface(note);
 
   try {
-    const existingNote = await db.notes.findOne(dbNote.id);
+    const existingNote = await db.notes.findOne(dbNote.id).exec();
     if(!existingNote) {
       await db.notes.insert(dbNote);
     } else {
@@ -274,3 +274,75 @@ const convertPartialNoteInterfaceToPartialDBNoteInterface = (note: Partial<NoteI
   }
   return dbNote;
 }
+
+//EXTRACT THIS OUT ONCE IT WORKS
+
+import { ApolloClient, HttpLink, ApolloLink, InMemoryCache } from '@apollo/client';
+//TODO remove rails 5 actioncable dependency. Just use @rails/actioncable 
+import { createConsumer } from '@rails/actioncable';
+import ActionCableLink from 'graphql-ruby-client/subscriptions/ActionCableLink';
+
+const cable = createConsumer('ws://localhost:3000/cable');
+
+const wsLink = new ActionCableLink({ cable });
+
+const client = new ApolloClient({
+  link: wsLink,
+  cache: new InMemoryCache(),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: 'no-cache',
+    },
+    query: {
+      fetchPolicy: 'no-cache',
+    },
+    mutate: {
+      fetchPolicy: 'no-cache',
+    },
+  },
+});
+
+import gql from 'graphql-tag';
+
+const NoteChanged = gql`
+subscription NoteChanged {
+  noteChanged { 
+    noteChanges(checkpoint: {updatedAt: "023-11-10T11:53:36+00:00"}) {
+      documents {
+        id
+        text
+        childIds
+        parentIds
+        _deleted
+      }
+      checkpoint {
+        updatedAt
+      }
+    }
+  }
+}
+`;
+//import { useSubscription } from "@apollo/client";
+// @ts-ignore
+//import { NoteChanged } from "../queries/note_changed.gql";
+//useSubscription(NoteChanged);
+client.subscribe({
+  query: NoteChanged,
+  variables: {}
+}).subscribe({
+  next(response) {
+    console.log(response);
+    if(response.data.noteChanged) {
+      const updatedNote = response.data.noteChanged.noteChanges.documents;
+      //TODO - move into the initialise
+      //if it's a delete then delete it
+      if(updatedNote._deleted) {
+        dbDeleteNoteById(window.myNotesDb, updatedNote.id);
+      } else {
+        dbUpdateNote(window.myNotesDb, updatedNote.id, updatedNote);
+      }
+    }
+
+  },
+  error(err) { console.error('Error in subscription', err); },
+});
