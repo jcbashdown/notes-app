@@ -55,6 +55,7 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
     };
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
+      console.log(note);
         if(value.trim() !== note.text) {
           updateNote({...note, text: value}, noteIndex, currentLevelPath)
         }

@@ -2,15 +2,17 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { NotesDatabase, db, dbAddNote, dbUpdateNote, dbDeleteNoteById } from '../database/database';
+import { DBNoteInterface } from '../database/database';
+import { NotesDatabase, db, dbUpsertNote, dbDeleteNoteById } from '../database/database';
 //Utils
-import {insertByPath, removeNoteByPath, updateByPath, findPreviousNote, convertDBNotesToNoteInterfaces} from './utilities';
+import {insertByPath, removeNoteByPath, updateByPath, findPreviousNote, convertDBNotesToNoteInterfaces, sortObjectsByDate} from './utilities';
 
 export interface NoteInterface {
   id: string;
   text: string;
   parentId: string | null;
   children: NoteInterface[];
+  createdAt: string; 
 }
 
 interface NotesContextType {
@@ -41,7 +43,11 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
                 const dbInstance = await db;
                 setDbInstance(dbInstance);
                 let initialNotes = await dbInstance.notes.find().exec();
-                setNotes(convertDBNotesToNoteInterfaces(initialNotes));
+                initialNotes = sortObjectsByDate(initialNotes as any, "createdAt");
+                console.log("initialContextNotes", initialNotes);
+                let initialContextNotes = convertDBNotesToNoteInterfaces(initialNotes as DBNoteInterface[])
+                //sort the initialContextNotes by createdAt
+                setNotes(initialContextNotes);
             } catch (error) {
                 console.error("Error initializing notes:", error);
                 // Handle the error appropriately
@@ -60,7 +66,10 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         // Subscribe to changes in the notes collection
         const subscription = dbInstance.notes.find().$.subscribe(updatedNotes => {
             if (!updatedNotes) return;
-            setNotes(convertDBNotesToNoteInterfaces(updatedNotes));
+            updatedNotes = sortObjectsByDate(updatedNotes as any, "createdAt");
+            console.log("updatedContextNotes", updatedNotes);
+            let updatedContextNotes = convertDBNotesToNoteInterfaces(updatedNotes as DBNoteInterface[])
+            setNotes(updatedContextNotes);
         });
 
         // Clean up the subscription when the component is unmounted
@@ -73,7 +82,8 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
             id: uuidv4(), // This will create a unique identifier
             text,
             parentId: parentId,
-            children: []
+            children: [],
+            createdAt: new Date().toISOString()
         };
         //if the currentLevelPath is not empty then add "." to the end of the path
         setNotes(prevNotes => {
@@ -96,7 +106,10 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
             // If no specific position is given, add the new note to the end of the list
             insertByPath(pathWithArrayPosition+"[]", newNote, newNotes);
           }
-          dbAddNote(dbInstance, newNote);
+          //add the note if it has text
+          if(newNote.text) {
+            dbUpsertNote(dbInstance, newNote.id, newNote);
+          }
           return newNotes;
         });
     };
@@ -109,7 +122,8 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         setNotes(prevNotes => {
           let newNotes = JSON.parse(JSON.stringify(prevNotes));
           newNotes = updateByPath(`${currentLevelPath}${noteIndex}`, updatedNote, newNotes);
-          dbUpdateNote(dbInstance, updatedNote.id, updatedNote);
+          console.log(updatedNote)
+          dbUpsertNote(dbInstance, updatedNote.id, updatedNote);
           return newNotes;
         });
         
@@ -162,8 +176,8 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           //update in the notes itself
           newNotes = updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
           //update in the database
-          dbUpdateNote(dbInstance, newPreviousNote.id, newPreviousNote);
-          dbUpdateNote(dbInstance, newNote.id, newNote);
+          dbUpsertNote(dbInstance, newPreviousNote.id, newPreviousNote);
+          dbUpsertNote(dbInstance, newNote.id, newNote);
           return newNotes;
       });
     };

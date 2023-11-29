@@ -9,6 +9,8 @@ export interface DBNoteInterface {
   text: string;
   parentIds: string[];
   childIds: string[];
+  createdAt: string;
+  updatedAt: string | null;
 }
 interface DBNotePushRow {
     assumedMasterState: DBNoteInterface | undefined;
@@ -40,9 +42,19 @@ const noteSchema = {
       items: {
         type: 'string'
       }
+    },
+    createdAt: {
+      type: "string",
+      format: "date-time",
+      maxLength: 36 //likely max is around 29
+    },
+    updatedAt: {
+      type: "string",
+      format: "date-time"
     }
   },
-  required: ['text', 'id']
+  required: ['text', 'id', 'createdAt'],
+  indexes: ["createdAt"]
 };
 
 // Define TypeScript types for the database and collection
@@ -57,7 +69,7 @@ async function initializeDB(): Promise<NotesDatabase> {
     const devModePlugin = await import('rxdb/plugins/dev-mode');
     addRxPlugin(devModePlugin.RxDBDevModePlugin);
     // Remove the existing database (useful during development)
-    //await removeRxDatabase('notesdb', storage);
+    await removeRxDatabase('notesdb', storage);
   }
   const db: NotesDatabase = await createRxDatabase<NotesDatabase>({
     name: 'notesdb',
@@ -120,6 +132,8 @@ const pullQueryBuilder = (lastPulledRevision: any) => {
                 parents {
                   id
                 }
+                createdAt
+                updatedAt
               }
               checkpoint {
                 updatedAt
@@ -127,33 +141,6 @@ const pullQueryBuilder = (lastPulledRevision: any) => {
             }
           }}
         `,
-        variables: {
-          checkpoint: checkpoint
-        }
-    };
-};
-const pullStreamQueryBuilder = (lastPulledRevision: any) => {
-    const checkpoint = lastPulledRevision || {updatedAt: new Date(0).toISOString()}; // Start from the epoch if no lastPulledRevision
-    const query = `
-      subscription noteChanged {
-        noteChanged { 
-          noteChanges(checkpoint: {updatedAt: "${checkpoint.updatedAt}"}) {
-            documents {
-              id
-              text
-              childIds
-              parentIds
-              _deleted
-            }
-            checkpoint {
-              updatedAt
-            }
-          }
-        }
-      }
-    `
-    return {
-        query,
         variables: {
           checkpoint: checkpoint
         }
@@ -170,6 +157,7 @@ const pushQueryBuilder = (docs: DBNotePushRow[]) => {
           text
           parentIds
           childIds
+          createdAt 
         }
       }
     }
@@ -188,35 +176,39 @@ const pulledDocModifier = (doc: any) => {
         id: doc.id,
         text: doc.text,
         parentIds: doc.parents.map((parent: any) => parent.id),
-        childIds: doc.children.map((child: any) => child.id)
+        childIds: doc.children.map((child: any) => child.id),
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt
     };
 };
 
-export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
-  //Create an instance of DBNoteInterface from NoteInterface
-  const dbNote = convertNoteInterfaceToDBNoteInterface(note);
+//export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
+  ////Create an instance of DBNoteInterface from NoteInterface
+  //const dbNote = convertNoteInterfaceToDBNoteInterface(note);
 
-  try {
-    const existingNote = await db.notes.findOne(dbNote.id).exec();
-    if(!existingNote) {
-      await db.notes.insert(dbNote);
-    } else {
-      console.error('Note with the same ID already exists. In react strict dev mode code may be called twice to deter side effects. If this is happening in production then there may be a bug', existingNote);
-    }
-  } catch (error: any) {
-    if (error.status === 409) {
-      console.error('Conflict detected. Note with the same ID already exists.', error);
-      // Handle conflict (e.g., merge changes, notify user, etc.)
-    } else {
-      // Handle other errors
-      throw error;
-    }
-  }
-}
+  //try {
+    //const existingNote = await db.notes.findOne(dbNote.id).exec();
+    //console.log(existingNote)
+    //if(!existingNote) {
+      //await db.notes.upsert(dbNote);
+    //} else {
+      //console.error('Note with the same ID already exists. In react strict dev mode code may be called twice to deter side effects. If this is happening in production then there may be a bug', existingNote);
+    //}
+  //} catch (error: any) {
+    //if (error.status === 409) {
+      //console.error('Conflict detected. Note with the same ID already exists.', error);
+      //// Handle conflict (e.g., merge changes, notify user, etc.)
+    //} else {
+      //// Handle other errors
+      //throw error;
+    //}
+  //}
+//}
 
-export async function dbUpdateNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
+export async function dbUpsertNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
   //convert updates partial to dbNoteInterface partial
   const dbNoteUpdates = convertPartialNoteInterfaceToPartialDBNoteInterface(updates);
+  console.log(dbNoteUpdates)
   await db.notes.upsert({ id: noteId, ...dbNoteUpdates });
 }
 
@@ -249,15 +241,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 //Utilities
-const convertNoteInterfaceToDBNoteInterface = (note: NoteInterface): DBNoteInterface => {
-  return {
-    id: note.id,
-    text: note.text,
-    //TODO - multiple parents
-    parentIds: note.parentId ? [note.parentId] : [],
-    childIds: note.children.map(child => child.id),
-  }
-}
 //convert Partial NoteInterface to Partial DBNoteInterface
 const convertPartialNoteInterfaceToPartialDBNoteInterface = (note: Partial<NoteInterface>): Partial<DBNoteInterface> => {
   const dbNote: Partial<DBNoteInterface> = {};
@@ -270,6 +253,8 @@ const convertPartialNoteInterfaceToPartialDBNoteInterface = (note: Partial<NoteI
       dbNote['id'] = note['id'];
     } else if (key === 'text') {
       dbNote['text'] = note['text'];
+    } else if (key === 'createdAt') {
+      dbNote['createdAt'] = note['createdAt'];
     }
   }
   return dbNote;
@@ -277,7 +262,7 @@ const convertPartialNoteInterfaceToPartialDBNoteInterface = (note: Partial<NoteI
 
 //EXTRACT THIS OUT ONCE IT WORKS
 
-import { ApolloClient, HttpLink, ApolloLink, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache } from '@apollo/client';
 //TODO remove rails 5 actioncable dependency. Just use @rails/actioncable 
 import { createConsumer } from '@rails/actioncable';
 import ActionCableLink from 'graphql-ruby-client/subscriptions/ActionCableLink';
@@ -313,6 +298,8 @@ subscription NoteChanged {
         text
         childIds
         parentIds
+        createdAt 
+        updatedAt
         _deleted
       }
       checkpoint {
@@ -322,10 +309,6 @@ subscription NoteChanged {
   }
 }
 `;
-//import { useSubscription } from "@apollo/client";
-// @ts-ignore
-//import { NoteChanged } from "../queries/note_changed.gql";
-//useSubscription(NoteChanged);
 client.subscribe({
   query: NoteChanged,
   variables: {}
@@ -339,7 +322,7 @@ client.subscribe({
       if(updatedNote._deleted) {
         dbDeleteNoteById(window.myNotesDb, updatedNote.id);
       } else {
-        dbUpdateNote(window.myNotesDb, updatedNote.id, updatedNote);
+        dbUpsertNote(window.myNotesDb, updatedNote.id, updatedNote);
       }
     }
 

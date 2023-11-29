@@ -260,7 +260,8 @@ export const convertDBNotesToNoteInterfaces = (dbNotes: DBNoteInterface[]): Note
       id: dbNote.id,
       text: dbNote.text,
       parentId: dbNote.parentIds?.length > 0 ? dbNote.parentIds[0] : null, // Assuming single parent
-      children: []
+      children: [],
+      createdAt: dbNote.createdAt,
     };
   });
 
@@ -277,3 +278,10 @@ export const convertDBNotesToNoteInterfaces = (dbNotes: DBNoteInterface[]): Note
 
   return notes;
 };
+export const sortObjectsByDate = (objects: any[], dateKey: string): any[] => {
+    return objects.sort((a, b) => {
+        const dateA = new Date(a[dateKey]);
+        const dateB = new Date(b[dateKey]);
+        return dateA.getTime() - dateB.getTime();
+    });
+}
