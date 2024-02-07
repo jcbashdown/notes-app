@@ -16,6 +16,7 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         const target = e.target as HTMLInputElement;
+      console.log(e.key);
         if (e.key === 'Enter') {
           e.preventDefault();
           // Add a new note and focus on its input field if the current note does not have an empty text
@@ -39,24 +40,26 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
         else if (e.key === 'Backspace') {
 
           if (target.value.trim() === '' && currentNotePath !== '0') {
+            e.preventDefault();
 
-            const precedingNote = findPrecedingNote(currentNotePath, note)
-            deleteNote(note, noteIndex, currentLevelPath);
             //focus on the preceding note index which has precedingNote.id as
             //it's data-note-id
+            const precedingNote = findPrecedingNote(currentNotePath, note)
             if(precedingNote) {
               const precedingNoteInput = document.querySelector(`[data-note-id="${precedingNote.id}"]`) as HTMLInputElement;
               if(precedingNoteInput) {
                 precedingNoteInput.focus();
               }
             }
+            deleteNote(note, noteIndex, currentLevelPath);
           }
         }
     };
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
+      console.log("change");
       console.log(note);
-        if(value.trim() !== note.text) {
+        if(value.trim() !== note.text && (note.text !== '' || value.trim() !== '')) {
           updateNote({...note, text: value}, noteIndex, currentLevelPath)
         }
     };

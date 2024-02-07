@@ -181,41 +181,37 @@ const pulledDocModifier = (doc: any) => {
         updatedAt: doc.updatedAt
     };
 };
+const pulledFlatDocModifier = (doc: any) => {
+    return {
+        id: doc.id,
+        text: doc.text,
+        parentIds: doc.parentsIds,
+        childIds: doc.childIds,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt
+    };
+};
 
-//export async function dbAddNote(db: NotesDatabase, note: NoteInterface): Promise<void> {
-  ////Create an instance of DBNoteInterface from NoteInterface
-  //const dbNote = convertNoteInterfaceToDBNoteInterface(note);
-
-  //try {
-    //const existingNote = await db.notes.findOne(dbNote.id).exec();
-    //console.log(existingNote)
-    //if(!existingNote) {
-      //await db.notes.upsert(dbNote);
-    //} else {
-      //console.error('Note with the same ID already exists. In react strict dev mode code may be called twice to deter side effects. If this is happening in production then there may be a bug', existingNote);
-    //}
-  //} catch (error: any) {
-    //if (error.status === 409) {
-      //console.error('Conflict detected. Note with the same ID already exists.', error);
-      //// Handle conflict (e.g., merge changes, notify user, etc.)
-    //} else {
-      //// Handle other errors
-      //throw error;
-    //}
-  //}
-//}
-
-export async function dbUpsertNote(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
+export async function dbUpsertNoteFromContext(db: NotesDatabase, noteId: string, updates: Partial<NoteInterface>): Promise<void> {
   //convert updates partial to dbNoteInterface partial
+  console.log("dbUpsertNoteContext", noteId, updates)
+  delete updates.id;
   const dbNoteUpdates = convertPartialNoteInterfaceToPartialDBNoteInterface(updates);
-  console.log(dbNoteUpdates)
   await db.notes.upsert({ id: noteId, ...dbNoteUpdates });
+}
+export async function dbUpsertNote(db: NotesDatabase, noteId: string, updates: Partial<DBNoteInterface>): Promise<void> {
+  //convert updates partial to dbNoteInterface partial
+  console.log("dbUpsertNote", noteId, updates)
+  delete updates.id;
+  await db.notes.upsert({ id: noteId, ...updates });
 }
 
 //function to delete a note
 export async function dbDeleteNoteById(db: NotesDatabase, noteId: string): Promise<void> {
+  console.log("dbDeleteNoteById", noteId)
   try {
-    const existingNote = await db.notes.findOne(noteId);
+    const existingNote = await db.notes.findOne(noteId).exec();
+    console.log("existingNote", existingNote)
     if(existingNote) {
       await db.notes.findOne(noteId).remove();
     } else {
@@ -262,70 +258,72 @@ const convertPartialNoteInterfaceToPartialDBNoteInterface = (note: Partial<NoteI
 
 //EXTRACT THIS OUT ONCE IT WORKS
 
-import { ApolloClient, InMemoryCache } from '@apollo/client';
-//TODO remove rails 5 actioncable dependency. Just use @rails/actioncable 
-import { createConsumer } from '@rails/actioncable';
-import ActionCableLink from 'graphql-ruby-client/subscriptions/ActionCableLink';
+//import { ApolloClient, InMemoryCache } from '@apollo/client';
+////TODO remove rails 5 actioncable dependency. Just use @rails/actioncable 
+//import { createConsumer } from '@rails/actioncable';
+//import ActionCableLink from 'graphql-ruby-client/subscriptions/ActionCableLink';
 
-const cable = createConsumer('ws://localhost:3000/cable');
+//const cable = createConsumer('ws://localhost:3000/cable');
 
-const wsLink = new ActionCableLink({ cable });
+//const wsLink = new ActionCableLink({ cable });
 
-const client = new ApolloClient({
-  link: wsLink,
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    watchQuery: {
-      fetchPolicy: 'no-cache',
-    },
-    query: {
-      fetchPolicy: 'no-cache',
-    },
-    mutate: {
-      fetchPolicy: 'no-cache',
-    },
-  },
-});
+//const client = new ApolloClient({
+  //link: wsLink,
+  //cache: new InMemoryCache(),
+  //defaultOptions: {
+    //watchQuery: {
+      //fetchPolicy: 'no-cache',
+    //},
+    //query: {
+      //fetchPolicy: 'no-cache',
+    //},
+    //mutate: {
+      //fetchPolicy: 'no-cache',
+    //},
+  //},
+//});
 
-import gql from 'graphql-tag';
+//import gql from 'graphql-tag';
 
-const NoteChanged = gql`
-subscription NoteChanged {
-  noteChanged { 
-    noteChanges(checkpoint: {updatedAt: "023-11-10T11:53:36+00:00"}) {
-      documents {
-        id
-        text
-        childIds
-        parentIds
-        createdAt 
-        updatedAt
-        _deleted
-      }
-      checkpoint {
-        updatedAt
-      }
-    }
-  }
-}
-`;
-client.subscribe({
-  query: NoteChanged,
-  variables: {}
-}).subscribe({
-  next(response) {
-    console.log(response);
-    if(response.data.noteChanged) {
-      const updatedNote = response.data.noteChanged.noteChanges.documents;
-      //TODO - move into the initialise
-      //if it's a delete then delete it
-      if(updatedNote._deleted) {
-        dbDeleteNoteById(window.myNotesDb, updatedNote.id);
-      } else {
-        dbUpsertNote(window.myNotesDb, updatedNote.id, updatedNote);
-      }
-    }
+//const NoteChanged = gql`
+//subscription NoteChanged {
+  //noteChanged { 
+    //noteChanges(checkpoint: {updatedAt: "023-11-10T11:53:36+00:00"}) {
+      //documents {
+        //id
+        //text
+        //childIds
+        //parentIds
+        //createdAt 
+        //updatedAt
+        //_deleted
+      //}
+      //checkpoint {
+        //updatedAt
+      //}
+    //}
+  //}
+//}
+//`;
+//client.subscribe({
+  //query: NoteChanged,
+  //variables: {}
+//}).subscribe({
+  //next(response) {
+    //if(response.data.noteChanged) {
+      //let updatedNote = response.data.noteChanged.noteChanges.documents;
+      //updatedNote = pulledFlatDocModifier(updatedNote); 
+      ////TODO - move into the initialise
+      ////if it's a delete then delete it
+      //if(updatedNote._deleted) {
+        //console.log("deleting note from socket", updatedNote);
+        //dbDeleteNoteById(window.myNotesDb, updatedNote.id);
+      //} else {
+        //console.log("updating note from socket", updatedNote);
+        //dbUpsertNote(window.myNotesDb, updatedNote.id, updatedNote);
+      //}
+    //}
 
-  },
-  error(err) { console.error('Error in subscription', err); },
-});
+  //},
+  //error(err) { console.error('Error in subscription', err); },
+//});

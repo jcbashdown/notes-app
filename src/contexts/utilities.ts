@@ -278,6 +278,7 @@ export const convertDBNotesToNoteInterfaces = (dbNotes: DBNoteInterface[]): Note
 
   return notes;
 };
+//TODO - replace this with DB sort function
 export const sortObjectsByDate = (objects: any[], dateKey: string): any[] => {
     return objects.sort((a, b) => {
         const dateA = new Date(a[dateKey]);
