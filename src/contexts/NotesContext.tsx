@@ -1,6 +1,7 @@
 // NotesContext.tsx
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { debounce } from 'lodash';
 
 import { NotesDatabase, db, dbAddNote, dbUpdateNote, dbDeleteNoteById } from '../database/database';
 //Utils
@@ -48,9 +49,6 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
                 setNotes(convertDBNotesToNoteInterfaces(initialNotes));
             } catch (error) {
                 console.error("Error initializing notes:", error);
-                // Handle the error appropriately
-                // For example, you might want to set an error state
-                // setError(error);
             } finally {
                 setLoading(false);
             }
@@ -88,7 +86,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
             // If no specific position is given, add the new note to the end of the list
             insertByPath(pathWithArrayPosition+"[]", newNote, newNotes);
           }
-          dbAddNote(dbInstance, newNote);
+          debounce(dbAddNote, 1000)(dbInstance, newNote);
           return newNotes;
         });
     };
@@ -101,7 +99,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         setNotes(prevNotes => {
           let newNotes = JSON.parse(JSON.stringify(prevNotes));
           newNotes = updateByPath(`${currentLevelPath}${noteIndex}`, updatedNote, newNotes);
-          dbUpdateNote(dbInstance, updatedNote.id, updatedNote);
+          debounce(dbUpdateNote, 1000)(dbInstance, updatedNote.id, updatedNote);
           return newNotes;
         });
         
@@ -121,7 +119,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           }
 
           newNotes = removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
-          dbDeleteNoteById(dbInstance, newNote.id);
+          debounce(dbDeleteNoteById, 1000)(dbInstance, newNote.id);
           return newNotes;
 
       });
@@ -154,8 +152,11 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           //update in the notes itself
           newNotes = updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
           //update in the database
-          dbUpdateNote(dbInstance, newPreviousNote.id, newPreviousNote);
-          dbUpdateNote(dbInstance, newNote.id, newNote);
+          //debounce the next two function calls
+          debounce(function (dbInstance, newPreviousNote, newNote) {
+            dbUpdateNote(dbInstance, newPreviousNote.id, newPreviousNote);
+            dbUpdateNote(dbInstance, newNote.id, newNote);
+          }, 1000)(dbInstance, newPreviousNote, newNote);
           return newNotes;
       });
     };

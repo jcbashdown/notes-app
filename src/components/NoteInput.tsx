@@ -17,9 +17,9 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
     const handleKeyDown = (e: React.KeyboardEvent) => {
         const target = e.target as HTMLInputElement;
         if (e.key === 'Enter') {
-          e.preventDefault();
           // Add a new note and focus on its input field if the current note does not have an empty text
           if (target.value.trim() !== '') {
+            e.preventDefault();
             const nextNote = currentLevelNotes[noteIndex+1] 
             const nextNoteEmpty = !nextNote?.text; 
             if(!nextNote || !nextNoteEmpty) {
@@ -30,15 +30,16 @@ const NoteInput: React.FC<{ note: NoteInterface, noteIndex: number, currentLevel
           // due to the way React handles re-renders and the focus effect in this component
         }
         else if (e.key === 'Tab') {
-          e.preventDefault(); // Stop the default tab action
 
           if (target.value.trim() !== '' && previousNote) {
+            e.preventDefault();
             nestNote(note, previousNote, noteIndex, previousNoteIndex, currentLevelPath);
           }
         }
         else if (e.key === 'Backspace') {
 
           if (target.value.trim() === '' && currentNotePath !== '0') {
+            e.preventDefault();
 
             const precedingNote = findPrecedingNote(currentNotePath, note)
             deleteNote(note, noteIndex, currentLevelPath);
