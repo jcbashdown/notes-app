@@ -1,0 +1,2 @@
+- Replace or abstract the "path" stuff. It's very confusing.
+    - Use Lodash for amending at path?
