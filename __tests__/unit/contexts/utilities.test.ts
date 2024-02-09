@@ -1,8 +1,6 @@
-// src/contexts/NotesContext.test.tsx
-
-import { findPreviousNote, convertDBNotesToNoteInterfaces } from './utilities';
-import { NoteInterface } from './NotesContext';
-import { DBNoteInterface } from '../database/database';
+import { findPreviousNote, convertDBNotesToNoteInterfaces, insertByPath } from '../../../src/contexts/utilities';
+import { NoteInterface } from '../../../src/contexts/NotesContext';
+import { DBNoteInterface } from '../../../src/database/database';
 
 const notesFixtures: NoteInterface[] = [
   {
@@ -294,5 +292,88 @@ describe('convertDBNotesToNoteInterfaces', () => {
   it('should handle orphaned notes', () => {
     const result = convertDBNotesToNoteInterfaces(dbNotesFixturesWithOrphans);
     expect(result).toEqual(notesFixturesWithOrphans);
+  });
+});
+
+describe('insertByPath', () => {
+  it('should insert correctly', () => {
+
+    const testPath = "[]" 
+    const testObj ={
+      id: '222abc',
+      text: 'New Child of First Note',
+      parentId: '123xyz',
+      children: []
+    } 
+    const amendedFixture: NoteInterface[] = [
+      {
+        id: "123xyz",
+        text: "First Note",
+        parentId: null,
+        children: [
+          {
+            id: "321abc",
+            text: "Child of First Note",
+            parentId: "123xyz",
+            children: []
+          },
+          {
+            id: "434gts",
+            text: "Second Child of First Note",
+            parentId: "123xyz",
+            children: [
+              {
+                id: "111ggg",
+                text: "Final child of first note",
+                parentId: "434gts",
+                children: []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "456def",
+        text: "Second Note",
+        parentId: null,
+        children: [
+          {
+            id: "654fed",
+            text: "Child of Second Note",
+            parentId: "456def",
+            children: []
+          },
+          {
+            id: "789ghi",
+            text: "Another Child of Second Note",
+            parentId: "456def",
+            children: []
+          },
+          {
+            id: "123abc",
+            text: "Here is the text!",
+            parentId: "456def",
+            children: [
+              {
+                id: "128abc",
+                text: "Another text!",
+                parentId: "123abc",
+                children: []
+              },
+              {
+                id: "126abc",
+                text: "A text!",
+                parentId: "123abc",
+                children: []
+              }
+            ]
+          }
+        ]
+      },
+      testObj
+    ];
+    const testRoot = JSON.parse(JSON.stringify(notesFixtures));
+    const result = insertByPath(testPath, testObj, testRoot);
+    expect(result).toEqual(amendedFixture);
   });
 });

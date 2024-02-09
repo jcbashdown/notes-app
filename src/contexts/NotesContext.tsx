@@ -29,6 +29,27 @@ interface NotesProviderProps {
     children: ReactNode;
 }
 
+export const addNoteFn = (newNote: NoteInterface, newNotes: NoteInterface[], previousNoteIndex: number | null, currentLevelPath: string) => {
+  // Add the note at the correct location
+  // This is specified by a dot separated path provided by currentLevelPath plus the previousNoteIndex
+  // If previousNoteIndex is null, the new note will be added to the end of the list
+  let pathWithArrayPosition = currentLevelPath;
+
+  if (pathWithArrayPosition !== "") {
+    pathWithArrayPosition = pathWithArrayPosition + ".";
+  }
+  if (previousNoteIndex !== null) {
+    //create the full path by combining pathWithArrayPosition and previousNoteIndex
+    pathWithArrayPosition = pathWithArrayPosition + (previousNoteIndex + 1);
+    //use insertByPath to insert the new note at the correct location
+    insertByPath(pathWithArrayPosition, newNote, newNotes);
+  } else {
+    // If no specific position is given, add the new note to the end of the list
+    insertByPath(pathWithArrayPosition+"[]", newNote, newNotes);
+  }
+  return newNotes;
+}
+
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     const [notes, setNotes] = useState<NoteInterface[]>([]);
 
@@ -67,25 +88,8 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         };
         //if the currentLevelPath is not empty then add "." to the end of the path
         setNotes(prevNotes => {
-          const newNotes = JSON.parse(JSON.stringify(prevNotes));
-          
-          // Add the note at the correct location
-          // This is specified by a dot separated path provided by currentLevelPath plus the previousNoteIndex
-          // If previousNoteIndex is null, the new note will be added to the end of the list
-          let pathWithArrayPosition = currentLevelPath;
-
-          if (pathWithArrayPosition !== "") {
-            pathWithArrayPosition = pathWithArrayPosition + ".";
-          }
-          if (previousNoteIndex !== null) {
-            //create the full path by combining pathWithArrayPosition and previousNoteIndex
-            pathWithArrayPosition = pathWithArrayPosition + (previousNoteIndex + 1);
-            //use insertByPath to insert the new note at the correct location
-            insertByPath(pathWithArrayPosition, newNote, newNotes);
-          } else {
-            // If no specific position is given, add the new note to the end of the list
-            insertByPath(pathWithArrayPosition+"[]", newNote, newNotes);
-          }
+          let newNotes = JSON.parse(JSON.stringify(prevNotes));
+          newNotes = addNoteFn(newNote, newNotes, previousNoteIndex, currentLevelPath);
           debounce(dbAddNote, 1000)(dbInstance, newNote);
           return newNotes;
         });
