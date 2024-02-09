@@ -1,4 +1,4 @@
-import { findPreviousNote, convertDBNotesToNoteInterfaces, insertByPath } from '../../../src/contexts/utilities';
+import { findPreviousNote, convertDBNotesToNoteInterfaces, insertByPath, updateByPath } from '../../../src/contexts/utilities';
 import { NoteInterface } from '../../../src/contexts/NotesContext';
 import { DBNoteInterface } from '../../../src/database/database';
 
@@ -374,6 +374,83 @@ describe('insertByPath', () => {
     ];
     const testRoot = JSON.parse(JSON.stringify(notesFixtures));
     const result = insertByPath(testPath, testObj, testRoot);
+    expect(result).toEqual(amendedFixture);
+  });
+});
+
+describe('updateByPath', () => {
+  it('should update correctly', () => {
+
+    const testPath = "0.children.1.children.0" 
+    const testObj ={
+      id: '222abc',
+      text: 'New Child of First Note',
+      parentId: '123xyz',
+      children: []
+    } 
+    const amendedFixture: NoteInterface[] = [
+      {
+        id: "123xyz",
+        text: "First Note",
+        parentId: null,
+        children: [
+          {
+            id: "321abc",
+            text: "Child of First Note",
+            parentId: "123xyz",
+            children: []
+          },
+          {
+            id: "434gts",
+            text: "Second Child of First Note",
+            parentId: "123xyz",
+            children: [
+              testObj
+            ]
+          }
+        ]
+      },
+      {
+        id: "456def",
+        text: "Second Note",
+        parentId: null,
+        children: [
+          {
+            id: "654fed",
+            text: "Child of Second Note",
+            parentId: "456def",
+            children: []
+          },
+          {
+            id: "789ghi",
+            text: "Another Child of Second Note",
+            parentId: "456def",
+            children: []
+          },
+          {
+            id: "123abc",
+            text: "Here is the text!",
+            parentId: "456def",
+            children: [
+              {
+                id: "128abc",
+                text: "Another text!",
+                parentId: "123abc",
+                children: []
+              },
+              {
+                id: "126abc",
+                text: "A text!",
+                parentId: "123abc",
+                children: []
+              }
+            ]
+          }
+        ]
+      },
+    ];
+    const testRoot = JSON.parse(JSON.stringify(notesFixtures));
+    const result = updateByPath(testPath, testObj, testRoot);
     expect(result).toEqual(amendedFixture);
   });
 });
