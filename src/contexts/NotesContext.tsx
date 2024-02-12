@@ -49,6 +49,29 @@ export const addNoteFn = (newNote: NoteInterface, newNotes: NoteInterface[], pre
   }
   return newNotes;
 }
+export const nestNoteFn = ({ newNotes, newNote, newPreviousNote, noteIndex, previousNoteIndex, currentLevelPath }: { newNotes: NoteInterface[], newNote: NoteInterface, newPreviousNote: NoteInterface, noteIndex: number, previousNoteIndex: number | null, currentLevelPath: string }): NoteInterface[] => {
+  if (noteIndex < 0 || previousNoteIndex === null || previousNoteIndex < 0) {
+      return newNotes; // No changes if indices are not valid
+  }
+
+  // Remove note from its current position
+  let pathWithArrayPosition = currentLevelPath;
+
+  if (pathWithArrayPosition !== "") {
+    pathWithArrayPosition = pathWithArrayPosition + ".";
+  }
+
+  removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
+
+  // Update its parentId
+  newNote.parentId = newPreviousNote.id;
+  // Add to parents children 
+  newPreviousNote.children = [...newPreviousNote.children, newNote];
+
+  //update in the notes itself
+  newNotes = updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
+  return newNotes
+}
 
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     const [notes, setNotes] = useState<NoteInterface[]>([]);
@@ -134,29 +157,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
           let newNotes = JSON.parse(JSON.stringify(prevNotes));
           const newNote = JSON.parse(JSON.stringify(note));
           const newPreviousNote = JSON.parse(JSON.stringify(previousNote));
-
-          if (noteIndex < 0 || previousNoteIndex === null || previousNoteIndex < 0) {
-              return newNotes; // No changes if indices are not valid
-          }
-
-          // Remove note from its current position
-          let pathWithArrayPosition = currentLevelPath;
-
-          if (pathWithArrayPosition !== "") {
-            pathWithArrayPosition = pathWithArrayPosition + ".";
-          }
-
-          removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
-
-          // Update its parentId
-          newNote.parentId = previousNote.id;
-          // Add to parents children 
-          newPreviousNote.children = [...previousNote.children, newNote];
-
-          //update in the notes itself
-          newNotes = updateByPath(`${pathWithArrayPosition}${previousNoteIndex}`, newPreviousNote, newNotes);
-          //update in the database
-          //debounce the next two function calls
+          newNotes = nestNoteFn({ newNotes, newNote, newPreviousNote, noteIndex, previousNoteIndex, currentLevelPath });
           debounce(function (dbInstance, newPreviousNote, newNote) {
             dbUpdateNote(dbInstance, newPreviousNote.id, newPreviousNote);
             dbUpdateNote(dbInstance, newNote.id, newNote);

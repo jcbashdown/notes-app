@@ -1,4 +1,4 @@
-import { addNoteFn, NoteInterface } from '../../../src/contexts/NotesContext';
+import { addNoteFn, nestNoteFn, NoteInterface } from '../../../src/contexts/NotesContext';
 
 jest.mock('../../../src/database/database', () => ({
   dbAddNote: jest.fn(),
@@ -71,5 +71,33 @@ describe('addNoteFn', () => {
     const updatedNotes = addNoteFn(newNote, JSON.parse(JSON.stringify(initialNotes)), -1, '0.children.1.children');
     expect(updatedNotes[0].children[1].children).toHaveLength(2); // Expecting the grandchild to now have 1 child
     expect(updatedNotes[0].children[1].children[0]).toEqual(newNote);
+  });
+});
+
+describe('nestNoteFn', () => {
+  it('should nest note in the expected place', () => {
+    const newNote = {
+        id: "434gts",
+        text: "Second Child of First Note",
+        parentId: "123xyz",
+        children: [
+          {
+            id: "111ggg",
+            text: "Grandchild of First Note",
+            parentId: "434gts",
+            children: []
+          }
+        ]
+      }
+    const newPreviousNote = {
+        id: "321abc",
+        text: "Child of First Note",
+        parentId: "123xyz",
+        children: []
+      }
+    const newNotes = JSON.parse(JSON.stringify(initialNotes))
+    const updatedNotes = nestNoteFn({newNotes, newNote, newPreviousNote, noteIndex: 1, previousNoteIndex: 0, currentLevelPath: '0.children'});
+    expect(updatedNotes[0].children).toHaveLength(1); // Expecting now 2 top level notes
+    expect(updatedNotes[0].children[0].children).toEqual([newNote]);
   });
 });
