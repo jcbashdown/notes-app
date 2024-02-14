@@ -29,7 +29,7 @@ interface NotesProviderProps {
     children: ReactNode;
 }
 
-export const addNoteFn = (newNote: NoteInterface, newNotes: NoteInterface[], previousNoteIndex: number | null, currentLevelPath: string) => {
+export const addNoteFn = ({newNote, newNotes, previousNoteIndex, currentLevelPath}: {newNote: NoteInterface, newNotes: NoteInterface[], previousNoteIndex: number | null, currentLevelPath: string}) => {
   // Add the note at the correct location
   // This is specified by a dot separated path provided by currentLevelPath plus the previousNoteIndex
   // If previousNoteIndex is null, the new note will be added to the end of the list
@@ -73,7 +73,7 @@ export const nestNoteFn = ({ newNotes, newNote, newPreviousNote, noteIndex, prev
   return newNotes
 }
 
-export const deleteNoteFn = (noteToDelete: NoteInterface, noteIndex: number, currentLevelPath: string, newNotes: NoteInterface[]): NoteInterface[] => {
+export const deleteNoteFn = ({noteToDelete, noteIndex, currentLevelPath, newNotes}: {noteToDelete: NoteInterface, noteIndex: number, currentLevelPath: string, newNotes: NoteInterface[]}): NoteInterface[] => {
   // Remove note from its current position
   let pathWithArrayPosition = currentLevelPath;
 
@@ -123,7 +123,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
         //if the currentLevelPath is not empty then add "." to the end of the path
         setNotes(prevNotes => {
           let newNotes = JSON.parse(JSON.stringify(prevNotes));
-          newNotes = addNoteFn(newNote, newNotes, previousNoteIndex, currentLevelPath);
+          newNotes = addNoteFn({newNote, newNotes, previousNoteIndex, currentLevelPath});
           debounce(dbAddNote, 1000)(dbInstance, newNote);
           return newNotes;
         });
@@ -148,7 +148,7 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
       setNotes(prevNotes => {
           let newNotes = JSON.parse(JSON.stringify(prevNotes));
           const noteToDelete = JSON.parse(JSON.stringify(note));
-          newNotes = deleteNoteFn(noteToDelete, noteIndex, currentLevelPath, newNotes);
+          newNotes = deleteNoteFn({noteToDelete, noteIndex, currentLevelPath, newNotes});
           debounce(dbDeleteNoteById, 1000)(dbInstance, noteToDelete.id);
           return newNotes;
 

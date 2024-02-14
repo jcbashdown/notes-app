@@ -44,7 +44,7 @@ describe('addNoteFn', () => {
       parentId: null,
       children: []
     };
-    const updatedNotes = addNoteFn(newNote, JSON.parse(JSON.stringify(initialNotes)), null, '');
+    const updatedNotes = addNoteFn({newNote, newNotes: JSON.parse(JSON.stringify(initialNotes)), previousNoteIndex: null, currentLevelPath: ''});
     expect(updatedNotes).toHaveLength(2); // Expecting now 2 top level notes
     expect(updatedNotes[1]).toEqual(newNote);
   });
@@ -55,7 +55,7 @@ describe('addNoteFn', () => {
       parentId: "434gts",
       children: []
     };
-    const updatedNotes = addNoteFn(newNote, JSON.parse(JSON.stringify(initialNotes)), null, '0.children.1.children');
+    const updatedNotes = addNoteFn({newNote, newNotes: JSON.parse(JSON.stringify(initialNotes)), previousNoteIndex: null, currentLevelPath: '0.children.1.children'});
     expect(updatedNotes[0].children[1].children).toHaveLength(2); // Expecting now 2 children (siblings at grandchild level)
     expect(updatedNotes[0].children[1].children[1]).toEqual(newNote);
   });
@@ -68,7 +68,7 @@ describe('addNoteFn', () => {
       children: []
     };
     // Adding as a new child to the grandchild
-    const updatedNotes = addNoteFn(newNote, JSON.parse(JSON.stringify(initialNotes)), -1, '0.children.1.children');
+    const updatedNotes = addNoteFn({newNote, newNotes: JSON.parse(JSON.stringify(initialNotes)), previousNoteIndex: -1, currentLevelPath: '0.children.1.children'});
     expect(updatedNotes[0].children[1].children).toHaveLength(2); // Expecting the grandchild to now have 1 child
     expect(updatedNotes[0].children[1].children[0]).toEqual(newNote);
   });
@@ -109,7 +109,7 @@ describe('deleteNoteFn', () => {
       parentId: "123xyz",
       children: []
     }
-    const updatedNotes = deleteNoteFn(noteToDelete, 0, '0.children', JSON.parse(JSON.stringify(initialNotes)));
+    const updatedNotes = deleteNoteFn({noteToDelete, noteIndex: 0, currentLevelPath: '0.children', newNotes: JSON.parse(JSON.stringify(initialNotes))});
     expect(updatedNotes[0].children).toHaveLength(1); // Expecting now 1 child
     expect(updatedNotes[0].children[0]).toEqual(initialNotes[0].children[1]);
   });
