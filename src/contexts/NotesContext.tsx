@@ -73,6 +73,17 @@ export const nestNoteFn = ({ newNotes, newNote, newPreviousNote, noteIndex, prev
   return newNotes
 }
 
+export const deleteNoteFn = (noteToDelete: NoteInterface, noteIndex: number, currentLevelPath: string, newNotes: NoteInterface[]): NoteInterface[] => {
+  // Remove note from its current position
+  let pathWithArrayPosition = currentLevelPath;
+
+  if (pathWithArrayPosition !== "") {
+    pathWithArrayPosition = pathWithArrayPosition + ".";
+  }
+
+  return removeNoteByPath(noteToDelete, `${pathWithArrayPosition}${noteIndex}`, newNotes);
+}
+
 export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
     const [notes, setNotes] = useState<NoteInterface[]>([]);
 
@@ -136,17 +147,9 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
       if (!dbInstance) return; // Ensure dbInstance is available
       setNotes(prevNotes => {
           let newNotes = JSON.parse(JSON.stringify(prevNotes));
-          const newNote = JSON.parse(JSON.stringify(note));
-
-          // Remove note from its current position
-          let pathWithArrayPosition = currentLevelPath;
-
-          if (pathWithArrayPosition !== "") {
-            pathWithArrayPosition = pathWithArrayPosition + ".";
-          }
-
-          newNotes = removeNoteByPath(newNote, `${pathWithArrayPosition}${noteIndex}`, newNotes);
-          debounce(dbDeleteNoteById, 1000)(dbInstance, newNote.id);
+          const noteToDelete = JSON.parse(JSON.stringify(note));
+          newNotes = deleteNoteFn(noteToDelete, noteIndex, currentLevelPath, newNotes);
+          debounce(dbDeleteNoteById, 1000)(dbInstance, noteToDelete.id);
           return newNotes;
 
       });

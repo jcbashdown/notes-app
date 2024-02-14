@@ -1,4 +1,4 @@
-import { addNoteFn, nestNoteFn, NoteInterface } from '../../../src/contexts/NotesContext';
+import { addNoteFn, nestNoteFn, deleteNoteFn, NoteInterface } from '../../../src/contexts/NotesContext';
 
 jest.mock('../../../src/database/database', () => ({
   dbAddNote: jest.fn(),
@@ -99,5 +99,18 @@ describe('nestNoteFn', () => {
     const updatedNotes = nestNoteFn({newNotes, newNote, newPreviousNote, noteIndex: 1, previousNoteIndex: 0, currentLevelPath: '0.children'});
     expect(updatedNotes[0].children).toHaveLength(1); // Expecting now 2 top level notes
     expect(updatedNotes[0].children[0].children).toEqual([newNote]);
+  });
+});
+describe('deleteNoteFn', () => {
+  it('should delete the note at the expected place', () => {
+    const noteToDelete = {
+      id: "321abc",
+      text: "Child of First Note",
+      parentId: "123xyz",
+      children: []
+    }
+    const updatedNotes = deleteNoteFn(noteToDelete, 0, '0.children', JSON.parse(JSON.stringify(initialNotes)));
+    expect(updatedNotes[0].children).toHaveLength(1); // Expecting now 1 child
+    expect(updatedNotes[0].children[0]).toEqual(initialNotes[0].children[1]);
   });
 });
